@@ -1,0 +1,7 @@
+.env
+.vs
+.vscode
+**/bin
+**/obj
+**/.toolstarget
+**/packages

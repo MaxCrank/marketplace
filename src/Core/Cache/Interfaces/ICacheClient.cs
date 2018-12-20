@@ -33,14 +33,14 @@ namespace Marketplace.Core.Cache.Interfaces
         bool Connect();
 
         /// <summary>
-        /// Adds the value.
+        /// Sets the value.
         /// </summary>
         /// <param name="key">The key.</param>
         /// <param name="value">The value.</param>
         /// <param name="asJson">Store object as JSON (good for complex types depending on client implementation).</param>
         /// <param name="collectionId">The collection identifier.</param>
         /// <returns></returns>
-        Task AddValue(string key, object value, bool asJson = false, int? collectionId = null);
+        Task<bool> SetValue(string key, object value, bool asJson = false, int? collectionId = null);
 
         /// <summary>
         /// Completely removes any underlying types of values specified by key.
@@ -48,7 +48,7 @@ namespace Marketplace.Core.Cache.Interfaces
         /// <param name="key">The key.</param>
         /// <param name="collectionId">The collection identifier.</param>
         /// <returns></returns>
-        Task RemoveUnderlyingValues(string key, int? collectionId = null);
+        Task<bool> RemoveUnderlyingValues(string key, int? collectionId = null);
 
         /// <summary>
         /// Gets the value.
@@ -61,14 +61,14 @@ namespace Marketplace.Core.Cache.Interfaces
         Task<T> GetValue<T>(string key, bool fromJson = false, int? collectionId = null);
 
         /// <summary>
-        /// Adds the list.
+        /// Sets the list.
         /// </summary>
         /// <param name="key">The key.</param>
         /// <param name="values">The values.</param>
         /// <param name="asJson">Store objects as JSON (good for complex types depending on client implementation).</param>
         /// <param name="collectionId">The collection identifier.</param>
         /// <returns></returns>
-        Task AddList(string key, object[] values, bool asJson = false, int? collectionId = null);
+        Task<bool> SetList(string key, object[] values, bool asJson = false, int? collectionId = null);
 
         /// <summary>
         /// Gets the list values.
@@ -112,14 +112,14 @@ namespace Marketplace.Core.Cache.Interfaces
         Task RemoveListValue(string key, object value, bool asJson = false, int? collectionId = null);
 
         /// <summary>
-        /// Adds the dictionary.
+        /// Sets the dictionary.
         /// </summary>
         /// <param name="key">The key.</param>
         /// <param name="values">The values.</param>
         /// <param name="asJson">Store objects as JSON (good for complex types depending on client implementation).</param>
         /// <param name="collectionId">The collection identifier.</param>
         /// <returns></returns>
-        Task AddDictionary(string key, Dictionary<string, object> values, bool asJson = false, int? collectionId = null);
+        Task SetDictionary(string key, Dictionary<string, object> values, bool asJson = false, int? collectionId = null);
 
         /// <summary>
         /// Gets the dictionary values.
@@ -132,7 +132,7 @@ namespace Marketplace.Core.Cache.Interfaces
         Task<Dictionary<string, T>> GetDictionaryValues<T>(string key, bool fromJson = false, int? collectionId = null);
 
         /// <summary>
-        /// Adds the dictionary value.
+        /// Sets the dictionary value.
         /// </summary>
         /// <param name="key">The key.</param>
         /// <param name="dictionaryKey">The dictionary key.</param>
@@ -140,7 +140,7 @@ namespace Marketplace.Core.Cache.Interfaces
         /// <param name="asJson">Store object as JSON (good for complex types depending on client implementation).</param>
         /// <param name="collectionId">The collection identifier.</param>
         /// <returns></returns>
-        Task AddDictionaryValue(string key, string dictionaryKey, object dictionaryValue, bool asJson = false, int? collectionId = null);
+        Task SetDictionaryValue(string key, string dictionaryKey, object dictionaryValue, bool asJson = false, int? collectionId = null);
 
         /// <summary>
         /// Gets the dictionary value.
@@ -158,8 +158,9 @@ namespace Marketplace.Core.Cache.Interfaces
         /// </summary>
         /// <param name="key">The key.</param>
         /// <param name="dictionaryKey">The dictionary key.</param>
+        /// <param name="fromJson">If object is stored as JSON (good for complex types depending on client implementation).</param>
         /// <param name="collectionId">The collection identifier.</param>
         /// <returns></returns>
-        Task RemoveDictionaryKey(string key, string dictionaryKey, int? collectionId = null);
+        Task RemoveDictionaryKey(string key, string dictionaryKey, bool fromJson = false, int? collectionId = null);
     }
 }

@@ -60,7 +60,7 @@ namespace Marketplace.Core.EventBus
         #region Constructors
 
         /// <summary>
-        /// 
+        /// Initializes a new instance of the <see cref="RabbitMqEventBusClient"/> class.
         /// </summary>
         /// <param name="busId"></param>
         /// <param name="applicationId"></param>
@@ -165,17 +165,14 @@ namespace Marketplace.Core.EventBus
         }
 
         /// <summary>
-        /// Sets the valid event message hanlder for the specific message event ID.
+        /// Performs bus-specific ops after addition of event message handler.
         /// </summary>
         /// <param name="handler">The handler.</param>
-        protected override void AddValidMessageHanlder(IEventBusMessageHandler handler)
+        protected override void OnMessageHandlerAdd(IEventBusMessageHandler handler)
         {
-            this.EventHandlers.Add(handler);
-
             string messageQueue = handler.MessageType.ToString().ToLower();
-
-            this.AddMessageHandlerSubscriber(handler.MessageType == MessageType.Log ? logSubscriberChannel :
-                dataSubscriberChannel, messageQueue, handler.MessageEventId);
+            this.AddMessageHandlerSubscriber(handler.MessageType == MessageType.Log ? logSubscriberChannel : dataSubscriberChannel, 
+                messageQueue, handler.MessageEventId);
         }
 
         /// <summary>
@@ -185,7 +182,7 @@ namespace Marketplace.Core.EventBus
         /// <param name="messageType">The message type handler is intended for.</param>
         protected override void OnMessageHandlersRemove(string messageEventId, MessageType messageType)
         {
-            if (EventHandlers.All(h => h.MessageEventId != messageEventId && h.MessageType != messageType))
+            if (this.EventHandlers.All(h => h.MessageEventId != messageEventId && h.MessageType != messageType))
             {
                 if (!this.Connect())
                 {
@@ -195,7 +192,7 @@ namespace Marketplace.Core.EventBus
 
                 var subscriberChannel = messageType == MessageType.Log ? logSubscriberChannel :
                     dataSubscriberChannel;
-                string messageQueue = messageType.ToString().ToLower();
+                string messageQueue = messageType.ToString().ToLowerInvariant();
 
                 subscriberChannel.QueueUnbind(messageQueue, this.BusId, messageEventId);
             }
@@ -230,13 +227,22 @@ namespace Marketplace.Core.EventBus
                 consumer.Received += async (model, eventArgs) =>
                 {
                     string messageBodyString = Encoding.UTF8.GetString(eventArgs.Body);
-                    var tasks = EventHandlers.Where(h => h.MessageEventId == eventArgs.RoutingKey)
+                    var tasks = this.EventHandlers.Where(h => h.MessageEventId == eventArgs.RoutingKey)
                         .Select(t => t.Handler.Invoke(messageBodyString));
                     await Task.WhenAll(tasks);
                     subChannel.BasicAck(eventArgs.DeliveryTag, false);
                 };
 
                 subChannel.BasicConsume(messageQueue, false, consumer);
+
+                if (messageQueue == MessageType.Log.ToString().ToLowerInvariant())
+                {
+                    this.logSubscriberChannel = subChannel;
+                }
+                else
+                {
+                    this.dataSubscriberChannel = subChannel;
+                }
             }
 
             subChannel.QueueBind(messageQueue, this.BusId, messageEventId);

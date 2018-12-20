@@ -79,13 +79,13 @@ namespace Marketplace.Core.EventBus.Base
         }
 
         /// <summary>
-        /// Sets the event message hanlder for the specific message event ID.
+        /// Adds the event message hanlder for the specific message event ID.
         /// </summary>
         /// <param name="handler">The handler.</param>
         public virtual void AddMessageHanlder(IEventBusMessageHandler handler)
         {
             this.CheckHandlerForAddition(handler);
-            this.AddValidMessageHanlder(handler);
+            this.OnMessageHandlerAdd(handler);
         }
 
         /// <summary>
@@ -111,16 +111,16 @@ namespace Marketplace.Core.EventBus.Base
         #region Protected methods
 
         /// <summary>
-        /// Publishes the specified event bus message after check.
+        /// Performs bus-specific ops after removal of event message handlers.
         /// </summary>
         /// <param name="message">The message to publish.</param>
         protected abstract void PublishValidMessage(IEventBusMessage message);
 
         /// <summary>
-        /// Adds the valid event message hanlder for the specific message event ID.
+        /// Performs bus-specific ops after addition of event message handler.
         /// </summary>
         /// <param name="handler">The handler.</param>
-        protected abstract void AddValidMessageHanlder(IEventBusMessageHandler handler);
+        protected abstract void OnMessageHandlerAdd(IEventBusMessageHandler handler);
 
         /// <summary>
         /// Performs bus-specific ops after removal of event message handlers.
@@ -156,7 +156,7 @@ namespace Marketplace.Core.EventBus.Base
                 var handler = handlersToRemove.FirstOrDefault(h => h.CreatorId == creatorId);
                 if (handler != null)
                 {
-                    EventHandlers.Remove(handler);
+                    this.EventHandlers.Remove(handler);
                     removed = true;
                 }
             }
@@ -164,7 +164,7 @@ namespace Marketplace.Core.EventBus.Base
             {
                 foreach (var handler in handlersToRemove)
                 {
-                    EventHandlers.Remove(handler);
+                    this.EventHandlers.Remove(handler);
                 }
 
                 removed = true;
@@ -202,7 +202,7 @@ namespace Marketplace.Core.EventBus.Base
                 throw new EventBusException(logMessage);
             }
 
-            if (EventHandlers.Any(h => h.MessageEventId == handler.MessageEventId && h.CreatorId == handler.CreatorId))
+            if (this.EventHandlers.Any(h => h.MessageEventId == handler.MessageEventId && h.CreatorId == handler.CreatorId))
             {
                 string logMessage = $"Can't add another event handler for message event ID {handler.MessageEventId} " +
                                     $"created by {handler.CreatorId} - only single one is allowed";

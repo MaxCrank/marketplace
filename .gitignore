@@ -1,6 +1,7 @@
 .env
 .vs
 .vscode
+**/*.user
 **/bin
 **/obj
 **/.toolstarget

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Threading.Tasks;
 using Marketplace.Core.EventBus.Base;
 
 namespace Marketplace.Core.EventBus.Interfaces
@@ -33,6 +34,14 @@ namespace Marketplace.Core.EventBus.Interfaces
         bool IsConnected { get; }
 
         /// <summary>
+        /// Gets a value indicating whether this instance is paused.
+        /// </summary>
+        /// <value>
+        ///   <c>true</c> if this instance is paused; otherwise, <c>false</c>.
+        /// </value>
+        bool IsPaused { get; }
+
+        /// <summary>
         /// Connects this instance if not already connected.
         /// </summary>
         /// <returns>Indicates if connection is established.</returns>
@@ -43,6 +52,12 @@ namespace Marketplace.Core.EventBus.Interfaces
         /// </summary>
         /// <param name="message">The message to publish.</param>
         void PublishMessage(IEventBusMessage message);
+
+        /// <summary>
+        /// Publishes the specified event bus message asynchronously.
+        /// </summary>
+        /// <param name="message">The message to publish.</param>
+        Task PublishMessageAsync(IEventBusMessage message);
 
         /// <summary>
         /// Adds the event message hanlder for the specific message event ID.
@@ -57,5 +72,15 @@ namespace Marketplace.Core.EventBus.Interfaces
         /// <param name="messageType">The message type handler is intended for.</param>
         /// <param name="creatorId">The handler creator identifier.</param>
         void RemoveMessageHanlders(string messageEventId, MessageType messageType, string creatorId = null);
+
+        /// <summary>
+        /// Pauses this instance.
+        /// </summary>
+        void Pause();
+
+        /// <summary>
+        /// Resumes this instance.
+        /// </summary>
+        void Resume();
     }
 }

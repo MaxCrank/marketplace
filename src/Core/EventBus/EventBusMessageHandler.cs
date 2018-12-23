@@ -35,7 +35,7 @@ namespace Marketplace.Core.EventBus
         /// <value>
         /// The handler.
         /// </value>
-        public Func<string, Task> Handler { get; protected set; }
+        public Func<byte[], Task> Handler { get; protected set; }
 
         /// <summary>
         /// Gets the type of the message.
@@ -44,6 +44,14 @@ namespace Marketplace.Core.EventBus
         /// The type of the message.
         /// </value>
         public MessageType MessageType { get; protected set; }
+
+        /// <summary>
+        /// Gets the unified message identifier (combined of message type and event IDs).
+        /// </summary>
+        /// <value>
+        /// The unified message identifier.
+        /// </value>
+        public string UnifiedMessageTypeEventId => $"{this.MessageType.ToString().ToLowerInvariant()}_{this.MessageEventId}";
 
         #endregion
 
@@ -56,7 +64,7 @@ namespace Marketplace.Core.EventBus
         /// <param name="messageEventId">The message event identifier.</param>
         /// <param name="handler">The event handler.</param>
         /// <param name="messageType">The message type of handler.</param>
-        public EventBusMessageHandler(string creatorId, string messageEventId, Func<string, Task> handler,
+        public EventBusMessageHandler(string creatorId, string messageEventId, Func<byte[], Task> handler,
             MessageType messageType = MessageType.Data)
         {
             this.CreatorId = creatorId;
@@ -81,6 +89,15 @@ namespace Marketplace.Core.EventBus
                    !string.IsNullOrEmpty(this.MessageEventId) &&
                    this.MessageType != MessageType.Unknown &&
                    this.Handler != null;
+        }
+
+        /// <summary>
+        /// Gets the basic information.
+        /// </summary>
+        /// <returns></returns>
+        public string GetBasicInfo()
+        {
+            return $"Type: {this.MessageType}; Event ID; {this.MessageEventId}; Creator: {this.CreatorId}";
         }
 
         #endregion

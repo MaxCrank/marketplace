@@ -33,6 +33,22 @@ namespace Marketplace.Core.EventBus.Interfaces
         MessageType MessageType { get; }
 
         /// <summary>
+        /// Gets the message event ID.
+        /// </summary>
+        /// <value>
+        /// The message event ID.
+        /// </value>
+        string MessageEventId { get; }
+
+        /// <summary>
+        /// Gets the unified message identifier (combined of message type and event IDs).
+        /// </summary>
+        /// <value>
+        /// The unified message identifier.
+        /// </value>
+        string UnifiedMessageTypeEventId { get; }
+
+        /// <summary>
         /// Get JSON string representation.
         /// </summary>
         /// <returns>JSON string representation.</returns>
@@ -53,11 +69,9 @@ namespace Marketplace.Core.EventBus.Interfaces
         bool IsValid();
 
         /// <summary>
-        /// Gets the message event ID.
+        /// Gets the basic information.
         /// </summary>
-        /// <value>
-        /// The message event ID.
-        /// </value>
-        string MessageEventId { get; }
+        /// <returns></returns>
+        string GetBasicInfo();
     }
 }

@@ -1,14 +1,13 @@
-﻿using System.Collections.Generic;
+﻿using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using Marketplace.Core.EventBus.Base;
-using Marketplace.Core.EventBus.Exceptions;
 using Marketplace.Core.EventBus.Interfaces;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 
-namespace Marketplace.Core.EventBus
+namespace Marketplace.Core.EventBus.Clients
 {
     /// <summary>
     /// RabbitMQ event bus client
@@ -20,27 +19,33 @@ namespace Marketplace.Core.EventBus
         /// <summary>
         /// The connection factory
         /// </summary>
-        private readonly ConnectionFactory connectionFactory;
+        private readonly ConnectionFactory connectionFactory = null;
+
+        /// <summary>
+        /// The consumer tags
+        /// </summary>
+        private readonly ConcurrentDictionary<string, string> consumerTags = 
+            new ConcurrentDictionary<string, string>();
 
         /// <summary>
         /// The publisher connection
         /// </summary>
-        private IConnection publisherConnection;
+        private IConnection publisherConnection = null;
 
         /// <summary>
         /// The subscriber connection
         /// </summary>
-        private IConnection subscriberConnection;
+        private IConnection subscriberConnection = null;
 
         /// <summary>
-        /// The data subscriber channel
+        /// The subscriber channel
         /// </summary>
-        private IModel dataSubscriberChannel = null;
+        private IModel subscriberChannel = null;
 
         /// <summary>
-        /// The log channel
+        /// The basic consumer
         /// </summary>
-        private IModel logSubscriberChannel = null;
+        private EventingBasicConsumer basicConsumer = null;
 
         #endregion
 
@@ -52,8 +57,10 @@ namespace Marketplace.Core.EventBus
         /// <value>
         ///   <c>true</c> if this instance is connected; otherwise, <c>false</c>.
         /// </value>
-        public override bool IsConnected => publisherConnection != null && publisherConnection.IsOpen
-                                            && subscriberConnection != null && subscriberConnection.IsOpen;
+        public override bool IsConnected => this.publisherConnection != null && this.publisherConnection.IsOpen
+                                            && this.subscriberConnection != null && this.subscriberConnection.IsOpen
+                                            && this.subscriberChannel != null && this.subscriberChannel.IsOpen
+                                            && this.basicConsumer != null;
 
         #endregion
 
@@ -98,18 +105,32 @@ namespace Marketplace.Core.EventBus
         /// <returns>Indicates if connection is established.</returns>
         public override bool Connect()
         {
-            if (publisherConnection == null || !publisherConnection.IsOpen)
+            if (publisherConnection == null)
             {
-                publisherConnection?.Dispose();
-                publisherConnection?.Close();
                 publisherConnection = connectionFactory.CreateConnection();
             }
 
-            if (subscriberConnection == null || !subscriberConnection.IsOpen)
+            if (subscriberConnection == null)
             {
-                publisherConnection?.Dispose();
-                subscriberConnection?.Close();
                 subscriberConnection = connectionFactory.CreateConnection();
+            }
+
+            if (this.subscriberChannel == null)
+            {
+                this.subscriberChannel = subscriberConnection.CreateModel();
+            }
+
+            if (this.basicConsumer == null)
+            {
+                this.basicConsumer = new EventingBasicConsumer(this.subscriberChannel);
+
+                this.basicConsumer.Received += async (model, eventArgs) =>
+                {
+                    var tasks = this.EventHandlers.Where(h => h.MessageEventId == eventArgs.RoutingKey)
+                        .Select(t => t.Handler.Invoke(eventArgs.Body));
+                    await Task.WhenAll(tasks);
+                    this.subscriberChannel.BasicAck(eventArgs.DeliveryTag, false);
+                };
             }
 
             return this.IsConnected;
@@ -120,8 +141,9 @@ namespace Marketplace.Core.EventBus
         /// </summary>
         public override void Dispose()
         {
-            this.publisherConnection?.Close();
-            this.subscriberConnection?.Close();
+            base.Dispose();
+            this.publisherConnection?.Dispose();
+            this.subscriberConnection?.Dispose();
         }
 
         #endregion
@@ -129,17 +151,11 @@ namespace Marketplace.Core.EventBus
         #region Protected methods
 
         /// <summary>
-        /// Publishes the specified valid event bus message.
+        /// Publishes the valid event bus message.
         /// </summary>
         /// <param name="message">The message to publish.</param>
         protected override void PublishValidMessage(IEventBusMessage message)
         {
-            if (!this.Connect())
-            {
-                throw new EventBusException($"Event bus is not connected and can't publish {message.MessageType} " +
-                    $"message with ID {message.MessageId} from {message.DateAdded}");
-            }
-
             using (var channel = publisherConnection.CreateModel())
             {
                 string queueName = message.MessageType.ToString().ToLowerInvariant();
@@ -157,11 +173,24 @@ namespace Marketplace.Core.EventBus
                 properties.AppId = this.ApplicationId;
 
                 channel.BasicPublish(this.BusId,
-                                 queueName,
-                                 true,
-                                 properties,
-                                 message.ToJsonBytes());
+                    queueName,
+                    true,
+                    properties,
+                    message.ToJsonBytes());
             }
+        }
+
+        /// <summary>
+        /// Publishes the valid event bus message asynchronously.
+        /// </summary>
+        /// <param name="message">The message to publish.</param>
+        /// <returns></returns>
+        protected override async Task PublishValidMessageAsync(IEventBusMessage message)
+        {
+            await Task.Run(() =>
+            {
+                this.PublishValidMessage(message);
+            });
         }
 
         /// <summary>
@@ -171,81 +200,57 @@ namespace Marketplace.Core.EventBus
         protected override void OnMessageHandlerAdd(IEventBusMessageHandler handler)
         {
             string messageQueue = handler.MessageType.ToString().ToLower();
-            this.AddMessageHandlerSubscriber(handler.MessageType == MessageType.Log ? logSubscriberChannel : dataSubscriberChannel, 
-                messageQueue, handler.MessageEventId);
+
+            if (this.EventHandlers.Count(h => h.MessageType == handler.MessageType) == 1)
+            {
+                this.subscriberChannel.ExchangeDeclare(this.BusId, ExchangeType.Direct);
+
+                string tag = this.subscriberChannel.BasicConsume(messageQueue, false, this.basicConsumer);
+                consumerTags[messageQueue] = tag;
+            }
+
+            this.subscriberChannel.QueueBind(messageQueue, this.BusId, handler.MessageEventId);
         }
 
         /// <summary>
-        /// Performs bus-specific ops after removal of event message handlers.
+        /// Performs bus-specific ops in case of complete removal of specific event message handlers.
         /// </summary>
         /// <param name="messageEventId">Message event ID.</param>
         /// <param name="messageType">The message type handler is intended for.</param>
         protected override void OnMessageHandlersRemove(string messageEventId, MessageType messageType)
         {
-            if (this.EventHandlers.All(h => h.MessageEventId != messageEventId && h.MessageType != messageType))
+            string messageQueue = messageType.ToString().ToLowerInvariant();
+
+            this.subscriberChannel.QueueUnbind(messageQueue, this.BusId, messageEventId);
+            if (this.EventHandlers.All(h => h.MessageType != messageType))
             {
-                if (!this.Connect())
-                {
-                    throw new EventBusException($"Can't establish connection to unbind from queue after removing all message handlers " +
-                                                $"for message type {messageType} with ID {messageEventId}");
-                }
-
-                var subscriberChannel = messageType == MessageType.Log ? logSubscriberChannel :
-                    dataSubscriberChannel;
-                string messageQueue = messageType.ToString().ToLowerInvariant();
-
-                subscriberChannel.QueueUnbind(messageQueue, this.BusId, messageEventId);
+                this.subscriberChannel.BasicCancel(this.consumerTags[messageQueue]);
+                this.consumerTags.Remove(messageQueue, out string removedTag);
             }
         }
 
-        #endregion
-
-        #region Private methods
+        /// <summary>
+        /// Called after <see cref="EventBusClient.Pause"/> to perform bus-specific ops.
+        /// </summary>
+        protected override void OnPause()
+        {
+            foreach (var tag in consumerTags.Values)
+            {
+                this.subscriberChannel.BasicCancel(tag);
+            }
+        }
 
         /// <summary>
-        /// Adds the message handler subscriber.
+        /// Called after <see cref="EventBusClient.Resume"/> to perform bus-specific ops.
         /// </summary>
-        /// <param name="subChannel">Subscriber channel.</param>
-        /// <param name="messageQueue">Message queue name.</param>
-        /// <param name="messageEventId">Message event ID.</param>
-        private void AddMessageHandlerSubscriber(IModel subChannel, string messageQueue, string messageEventId)
+        protected override void OnResume()
         {
-            if (!this.Connect())
+            var keys = consumerTags.Keys.ToArray();
+            foreach (var key in keys)
             {
-                throw new EventBusException($"Can't establish connection to finish adding message handler for message queue {messageQueue} " +
-                                            $"and event ID {messageEventId}");
+                this.consumerTags[key] =
+                    this.subscriberChannel.BasicConsume(key, false, basicConsumer);
             }
-
-            if (subChannel == null)
-            {
-                subChannel = subscriberConnection.CreateModel();
-
-                subChannel.ExchangeDeclare(this.BusId, ExchangeType.Direct);
-
-                var consumer = new EventingBasicConsumer(subChannel);
-
-                consumer.Received += async (model, eventArgs) =>
-                {
-                    string messageBodyString = Encoding.UTF8.GetString(eventArgs.Body);
-                    var tasks = this.EventHandlers.Where(h => h.MessageEventId == eventArgs.RoutingKey)
-                        .Select(t => t.Handler.Invoke(messageBodyString));
-                    await Task.WhenAll(tasks);
-                    subChannel.BasicAck(eventArgs.DeliveryTag, false);
-                };
-
-                subChannel.BasicConsume(messageQueue, false, consumer);
-
-                if (messageQueue == MessageType.Log.ToString().ToLowerInvariant())
-                {
-                    this.logSubscriberChannel = subChannel;
-                }
-                else
-                {
-                    this.dataSubscriberChannel = subChannel;
-                }
-            }
-
-            subChannel.QueueBind(messageQueue, this.BusId, messageEventId);
         }
 
         #endregion

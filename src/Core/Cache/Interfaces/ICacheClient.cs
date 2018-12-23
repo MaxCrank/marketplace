@@ -162,5 +162,11 @@ namespace Marketplace.Core.Cache.Interfaces
         /// <param name="collectionId">The collection identifier.</param>
         /// <returns></returns>
         Task RemoveDictionaryKey(string key, string dictionaryKey, bool fromJson = false, int? collectionId = null);
+
+        /// <summary>
+        /// Flushes all.
+        /// </summary>
+        /// <returns></returns>
+        Task FlushAll();
     }
 }

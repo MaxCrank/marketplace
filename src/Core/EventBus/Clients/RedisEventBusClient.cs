@@ -1,12 +1,11 @@
-﻿using System.Linq;
-using System.Text;
+﻿using System;
+using System.Linq;
 using System.Threading.Tasks;
 using Marketplace.Core.EventBus.Base;
-using Marketplace.Core.EventBus.Exceptions;
 using Marketplace.Core.EventBus.Interfaces;
 using StackExchange.Redis;
 
-namespace Marketplace.Core.EventBus
+namespace Marketplace.Core.EventBus.Clients
 {
     /// <summary>
     /// Redis event bus client
@@ -19,7 +18,7 @@ namespace Marketplace.Core.EventBus
         /// <summary>
         /// The connection
         /// </summary>
-        private ConnectionMultiplexer connection;
+        private ConnectionMultiplexer connection = null;
 
         /// <summary>
         /// The host
@@ -29,7 +28,12 @@ namespace Marketplace.Core.EventBus
         /// <summary>
         /// The pub/sub client
         /// </summary>
-        private ISubscriber pubSubClient;
+        private ISubscriber pubSubClient = null;
+
+        /// <summary>
+        /// The handler action
+        /// </summary>
+        private Action<RedisChannel, RedisValue> handlerAction = null;
 
         #endregion
 
@@ -74,7 +78,22 @@ namespace Marketplace.Core.EventBus
                 var options = ConfigurationOptions.Parse(this.host);
                 options.ClientName = this.ApplicationId;
                 this.connection = ConnectionMultiplexer.Connect(options);
+            }
+
+            if (this.pubSubClient == null)
+            {
                 this.pubSubClient = this.connection.GetSubscriber();
+            }
+
+            if (this.handlerAction == null)
+            {
+                this.handlerAction = async (channel, value) =>
+                {
+                    var tasks = this.EventHandlers.Where(h =>
+                            h.UnifiedMessageTypeEventId == channel)
+                        .Select(t => t.Handler.Invoke(value));
+                    await Task.WhenAll(tasks);
+                };
             }
 
             return this.connection.IsConnected;
@@ -85,6 +104,7 @@ namespace Marketplace.Core.EventBus
         /// </summary>
         public override void Dispose()
         {
+            base.Dispose();
             this.connection?.Dispose();
         }
 
@@ -93,19 +113,23 @@ namespace Marketplace.Core.EventBus
         #region Protected methods
 
         /// <summary>
-        /// Publishes the specified event bus message after check.
+        /// Publishes the valid event bus message.
         /// </summary>
         /// <param name="message">The message to publish.</param>
+        /// <returns></returns>
         protected override void PublishValidMessage(IEventBusMessage message)
         {
-            if (!this.Connect())
-            {
-                throw new EventBusException($"Event bus is not connected and can't publish {message.MessageType} " +
-                                            $"message with ID {message.MessageId} from {message.DateAdded}");
-            }
+            this.pubSubClient.Publish(message.UnifiedMessageTypeEventId, message.ToJson());
+        }
 
-            this.pubSubClient.Publish($"{message.MessageType.ToString().ToLowerInvariant()}_{message.MessageEventId}",
-                message.ToJson());
+        /// <summary>
+        /// Publishes the valid event bus message asynchronously.
+        /// </summary>
+        /// <param name="message">The message to publish.</param>
+        /// <returns></returns>
+        protected override async Task PublishValidMessageAsync(IEventBusMessage message)
+        {
+            await this.pubSubClient.PublishAsync(message.UnifiedMessageTypeEventId, message.ToJson());
         }
 
         /// <summary>
@@ -114,43 +138,44 @@ namespace Marketplace.Core.EventBus
         /// <param name="handler">The handler.</param>
         protected override void OnMessageHandlerAdd(IEventBusMessageHandler handler)
         {
-            if (!this.Connect())
-            {
-                throw new EventBusException($"Can't establish connection to finish adding message handler for channel " +
-                                            $"{handler.MessageType.ToString().ToLowerInvariant()}_{handler.MessageEventId}");
-            }
-
-            this.pubSubClient.Subscribe(new RedisChannel(
-                $"{handler.MessageType.ToString().ToLowerInvariant()}_{handler.MessageEventId}",
-                RedisChannel.PatternMode.Literal), async (channel, value) =>
-                {
-                    string messageBodyString = Encoding.UTF8.GetString(value);
-                    var tasks = this.EventHandlers.Where(h =>
-                            $"{h.MessageType.ToString().ToLowerInvariant()}_{h.MessageEventId}" == channel)
-                        .Select(t => t.Handler.Invoke(messageBodyString));
-                    await Task.WhenAll(tasks);
-                });
+            this.pubSubClient.Subscribe(new RedisChannel(handler.UnifiedMessageTypeEventId, RedisChannel.PatternMode.Literal), 
+                this.handlerAction);
         }
 
         /// <summary>
-        /// Performs bus-specific ops after removal of event message handlers.
+        ///Performs bus-specific ops in case of complete removal of specific event message handlers.
         /// </summary>
         /// <param name="messageEventId">Message event ID.</param>
         /// <param name="messageType">The message type handler is intended for.</param>
         protected override void OnMessageHandlersRemove(string messageEventId, MessageType messageType)
         {
-            if (this.EventHandlers.All(h => h.MessageEventId != messageEventId && h.MessageType != messageType))
+            this.pubSubClient.Unsubscribe(new RedisChannel($"{messageType.ToString().ToLowerInvariant()}_{messageEventId}",
+                RedisChannel.PatternMode.Literal));
+        }
+
+        /// <summary>
+        /// Called after <see cref="EventBusClient.Pause"/> to perform bus-specific ops.
+        /// </summary>
+        protected override void OnPause()
+        {
+            var channels = this.EventHandlers.Select(h => h.UnifiedMessageTypeEventId).Distinct();
+            foreach (var channel in channels)
             {
-                if (!this.Connect())
-                {
-                    throw new EventBusException($"Can't establish connection to unsubscribe from channel " +
-                                                $"{messageType.ToString().ToLowerInvariant()}_{messageEventId}");
-                }
-
-                this.pubSubClient.Unsubscribe(new RedisChannel($"{messageType.ToString().ToLowerInvariant()}_{messageEventId}",
-                    RedisChannel.PatternMode.Literal));
+                this.pubSubClient.Unsubscribe(channel);
             }
+        }
 
+        /// <summary>
+        /// Called after <see cref="EventBusClient.Resume"/> to perform bus-specific ops.
+        /// </summary>
+        protected override void OnResume()
+        {
+            var channels = this.EventHandlers.Select(h => h.UnifiedMessageTypeEventId).Distinct();
+            foreach (var channelString in channels)
+            {
+                this.pubSubClient.Subscribe(new RedisChannel(channelString, RedisChannel.PatternMode.Literal),
+                    this.handlerAction);
+            }
         }
 
         #endregion

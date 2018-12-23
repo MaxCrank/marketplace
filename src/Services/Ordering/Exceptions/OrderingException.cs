@@ -6,7 +6,7 @@ namespace Marketplace.Services.Ordering.Exceptions
     /// Ordering exception class
     /// </summary>
     /// <seealso cref="System.Exception" />
-    internal class OrderingException : Exception
+    public class OrderingException : Exception
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="OrderingException"/> class.

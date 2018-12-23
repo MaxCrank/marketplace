@@ -1,6 +1,6 @@
 ﻿using Marketplace.Core.EventBus.Base;
 
-namespace Marketplace.Core.EventBus
+namespace Marketplace.Core.EventBus.Messages
 {
     /// <summary>
     /// Log message class.

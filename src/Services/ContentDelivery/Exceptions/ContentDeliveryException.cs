@@ -6,7 +6,7 @@ namespace Marketplace.Services.ContentDelivery.Exceptions
     /// Content delivery exception class
     /// </summary>
     /// <seealso cref="System.Exception" />
-    internal class ContentDeliveryException : Exception
+    public class ContentDeliveryException : Exception
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="ContentDeliveryException"/> class.

@@ -14,6 +14,14 @@ namespace Marketplace.Core.EventBus.Base
         #region Properties
 
         /// <summary>
+        /// Gets the type of the message.
+        /// </summary>
+        /// <value>
+        /// The type of the message.
+        /// </value>
+        public virtual MessageType MessageType => MessageType.Unknown;
+
+        /// <summary>
         /// Gets the message identifier.
         /// </summary>
         /// <value>
@@ -30,12 +38,20 @@ namespace Marketplace.Core.EventBus.Base
         public DateTime DateAdded { get; } = DateTime.UtcNow;
 
         /// <summary>
-        /// Gets the type of the message.
+        /// Gets the message event ID.
         /// </summary>
         /// <value>
-        /// The type of the message.
+        /// The message event ID.
         /// </value>
-        public virtual MessageType MessageType => MessageType.Unknown;
+        public string MessageEventId => this.GetType().Name.ToLowerInvariant();
+
+        /// <summary>
+        /// Gets the unified message identifier (combined of message type and event IDs).
+        /// </summary>
+        /// <value>
+        /// The unified message identifier.
+        /// </value>
+        public string UnifiedMessageTypeEventId => $"{this.MessageType.ToString().ToLowerInvariant()}_{this.MessageEventId}";
 
         #endregion
 
@@ -71,12 +87,14 @@ namespace Marketplace.Core.EventBus.Base
         }
 
         /// <summary>
-        /// Gets the message event ID.
+        /// Gets the basic information.
         /// </summary>
-        /// <value>
-        /// The message event ID.
-        /// </value>
-        public string MessageEventId => this.GetType().Name;
+        /// <returns></returns>
+        public string GetBasicInfo()
+        {
+            return
+                $"Type: {this.MessageType}; Event ID: {this.MessageEventId}; Date added: {this.DateAdded}; Message ID: {this.MessageId}";
+        }
 
         #endregion
     }

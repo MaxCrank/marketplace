@@ -31,7 +31,7 @@ namespace Marketplace.Core.EventBus.Interfaces
         /// <value>
         /// The handler.
         /// </value>
-        Func<string, Task> Handler { get; }
+        Func<byte[], Task> Handler { get; }
 
         /// <summary>
         /// Gets the type of the message.
@@ -42,11 +42,25 @@ namespace Marketplace.Core.EventBus.Interfaces
         MessageType MessageType { get; }
 
         /// <summary>
+        /// Gets the unified message identifier (combined of message type and event IDs).
+        /// </summary>
+        /// <value>
+        /// The unified message identifier.
+        /// </value>
+        string UnifiedMessageTypeEventId { get; }
+
+        /// <summary>
         /// Returns true if handler is valid.
         /// </summary>
         /// <returns>
         ///   <c>true</c> if this handler is valid; otherwise, <c>false</c>.
         /// </returns>
         bool IsValid();
+
+        /// <summary>
+        /// Gets the basic information.
+        /// </summary>
+        /// <returns></returns>
+        string GetBasicInfo();
     }
 }

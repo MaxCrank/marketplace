@@ -8,7 +8,7 @@ namespace Marketplace.Core.DataTypes.Collections
 {
     /// <summary>
     /// The concurrent list.
-    /// Credits go to Ronnie Overby (taken from from https://gist.github.com/ronnieoverby/11c8b6b067872db719d7)
+    /// Credits go to Ronnie Overby (original version is taken from from https://gist.github.com/ronnieoverby/11c8b6b067872db719d7)
     /// </summary>
     /// <typeparam name="T"></typeparam>
     /// <seealso cref="System.Collections.Generic.IList{T}" />

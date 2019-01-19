@@ -17,12 +17,12 @@ namespace Marketplace.Core.EventBus.Interfaces
         Guid MessageId { get; }
 
         /// <summary>
-        /// Gets the date added.
+        /// Gets the creation date.
         /// </summary>
         /// <value>
-        /// The date added.
+        /// The creation date.
         /// </value>
-        DateTime DateAdded { get; }
+        DateTime CreationDate { get; }
 
         /// <summary>
         /// Gets the type of the message.

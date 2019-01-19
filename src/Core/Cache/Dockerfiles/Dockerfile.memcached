@@ -1,0 +1,8 @@
+FROM memcached
+USER root
+RUN apt-get update && apt-get install -y --no-install-recommends libsasl2-2 sasl2-bin libsasl2-2 libsasl2-dev libsasl2-modules && rm -rf /var/lib/apt/lists/*
+RUN echo "mech_list: plain" > /usr/lib/sasl2/memcached.conf
+ENV SASL_CONF_PATH=/usr/lib/sasl2/memcached.conf
+RUN chown memcache /etc/sasldb2 
+USER memcache
+CMD echo $SASL_PASSWORD | saslpasswd2 -c -a memcached memcache && exec memcached -S -u memcache -vvvv

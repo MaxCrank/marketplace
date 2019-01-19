@@ -30,12 +30,12 @@ namespace Marketplace.Core.EventBus.Base
         public Guid MessageId { get; } = new Guid();
 
         /// <summary>
-        /// Gets the date added.
+        /// Gets the creation date.
         /// </summary>
         /// <value>
-        /// The date added.
+        /// The creation date.
         /// </value>
-        public DateTime DateAdded { get; } = DateTime.UtcNow;
+        public DateTime CreationDate { get; } = DateTime.UtcNow;
 
         /// <summary>
         /// Gets the message event ID.
@@ -93,7 +93,7 @@ namespace Marketplace.Core.EventBus.Base
         public string GetBasicInfo()
         {
             return
-                $"Type: {this.MessageType}; Event ID: {this.MessageEventId}; Date added: {this.DateAdded}; Message ID: {this.MessageId}";
+                $"Type: {this.MessageType}; Event ID: {this.MessageEventId}; Date added: {this.CreationDate}; Message ID: {this.MessageId}";
         }
 
         #endregion

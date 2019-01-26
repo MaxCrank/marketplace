@@ -1,4 +1,7 @@
-﻿using Marketplace.Services.ContentDelivery.DataModel.Entities.Base;
+﻿// File: UserComment.cs
+// Copyright (c) 2018-2019 Maksym Shnurenok
+// License: MIT
+using Marketplace.Services.ContentDelivery.DataModel.Entities.Base;
 using System;
 
 namespace Marketplace.Services.ContentDelivery.DataModel.Entities

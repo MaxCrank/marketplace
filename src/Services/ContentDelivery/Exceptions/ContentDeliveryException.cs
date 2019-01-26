@@ -1,4 +1,7 @@
-﻿using System;
+﻿// File: ContentDeliveryException.cs
+// Copyright (c) 2018-2019 Maksym Shnurenok
+// License: MIT
+using System;
 
 namespace Marketplace.Services.ContentDelivery.Exceptions
 {

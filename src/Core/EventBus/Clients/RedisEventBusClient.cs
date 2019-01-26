@@ -1,4 +1,7 @@
-﻿using System;
+﻿// File: RedisEventBusClient.cs
+// Copyright (c) 2018-2019 Maksym Shnurenok
+// License: MIT
+using System;
 using System.Linq;
 using System.Threading.Tasks;
 using Marketplace.Core.EventBus.Base;
@@ -21,9 +24,19 @@ namespace Marketplace.Core.EventBus.Clients
         private ConnectionMultiplexer connection = null;
 
         /// <summary>
-        /// The host
+        /// The host and port
         /// </summary>
-        private readonly string host;
+        private readonly string hostAndPort;
+
+        /// <summary>
+        /// The password
+        /// </summary>
+        private readonly string password;
+
+        /// <summary>
+        /// The admin mode
+        /// </summary>
+        private readonly bool adminMode;
 
         /// <summary>
         /// The pub/sub client
@@ -57,15 +70,21 @@ namespace Marketplace.Core.EventBus.Clients
         /// </summary>
         /// <param name="busId">The bus identifier.</param>
         /// <param name="applicationId">The application identifier.</param>
-        /// <param name="host"></param>
-        public RedisEventBusClient(string busId, string applicationId, string host = "localhost") : base(busId, applicationId)
+        /// <param name="host">The host (please, do not specify port in this parameter - use <paramref name="port"/> parameter instead).</param>
+        /// <param name="password">The password.</param>
+        /// <param name="adminMode">Allows admin mode operations.</param>
+        /// <param name="port">The port.</param>
+        public RedisEventBusClient(string busId, string applicationId, string host, string password = null,
+            bool adminMode = false, int port = 6379) : base(busId, applicationId)
         {
-            this.host = host;
+            this.hostAndPort = $"{host.TrimEnd('/')}:{port}";
+            this.password = password;
+            this.adminMode = adminMode;
         }
 
         #endregion
 
-        #region Public methods
+        #region Public Methods
 
         /// <summary>
         /// Connects this instance if not already connected.
@@ -75,8 +94,15 @@ namespace Marketplace.Core.EventBus.Clients
         {
             if (this.connection == null)
             {
-                var options = ConfigurationOptions.Parse(this.host);
+                var options = ConfigurationOptions.Parse(this.hostAndPort);
                 options.ClientName = this.ApplicationId;
+                options.AllowAdmin = this.adminMode;
+                options.ResolveDns = false;
+                if (!string.IsNullOrEmpty(this.password))
+                {
+                    options.Password = this.password;
+                }
+
                 this.connection = ConnectionMultiplexer.Connect(options);
             }
 
@@ -110,13 +136,12 @@ namespace Marketplace.Core.EventBus.Clients
 
         #endregion
 
-        #region Protected methods
+        #region Protected Methods
 
         /// <summary>
         /// Publishes the valid event bus message.
         /// </summary>
         /// <param name="message">The message to publish.</param>
-        /// <returns></returns>
         protected override void PublishValidMessage(IEventBusMessage message)
         {
             this.pubSubClient.Publish(message.UnifiedMessageTypeEventId, message.ToJson());
@@ -126,7 +151,7 @@ namespace Marketplace.Core.EventBus.Clients
         /// Publishes the valid event bus message asynchronously.
         /// </summary>
         /// <param name="message">The message to publish.</param>
-        /// <returns></returns>
+        /// <returns>A task that represents the asynchronous operation.</returns>
         protected override async Task PublishValidMessageAsync(IEventBusMessage message)
         {
             await this.pubSubClient.PublishAsync(message.UnifiedMessageTypeEventId, message.ToJson());

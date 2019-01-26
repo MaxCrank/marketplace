@@ -1,4 +1,7 @@
-﻿using System;
+﻿// File: CatalogItem.cs
+// Copyright (c) 2018-2019 Maksym Shnurenok
+// License: MIT
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations.Schema;
 using Marketplace.Services.Catalog.DataModel.Entities.Base;

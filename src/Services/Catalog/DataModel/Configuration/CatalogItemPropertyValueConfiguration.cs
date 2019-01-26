@@ -1,4 +1,7 @@
-﻿using Marketplace.Services.Catalog.DataModel.Entities.Joins;
+﻿// File: CatalogItemPropertyValueConfiguration.cs
+// Copyright (c) 2018-2019 Maksym Shnurenok
+// License: MIT
+using Marketplace.Services.Catalog.DataModel.Entities.Joins;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 

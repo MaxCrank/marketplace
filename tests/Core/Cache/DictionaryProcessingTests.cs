@@ -1,4 +1,7 @@
-﻿using System;
+﻿// File: DictionaryProcessingTests.cs
+// Copyright (c) 2018-2019 Maksym Shnurenok
+// License: MIT
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -152,7 +155,7 @@ namespace Marketplace.Core.Tests.Cache
         [Test]
         public async Task TestNonExistingDictionary()
         {
-            await this.PerformWithAllClientsAsync(async client =>
+            await this.PerformWithAllCacheClientsAsync(async client =>
             {
                 Assert.ThrowsAsync<CacheException>(async () => await client.GetDictionaryAsync<DummyCacheObject>(
                     this.Key));
@@ -182,7 +185,7 @@ namespace Marketplace.Core.Tests.Cache
         [Test]
         public async Task TestDictionaryRemoval()
         {
-            await this.PerformWithAllClientsAsync(async client =>
+            await this.PerformWithAllCacheClientsAsync(async client =>
             {
                 Assert.IsFalse(await client.RemoveUnderlyingValuesAsync(this.Key));
 
@@ -207,7 +210,7 @@ namespace Marketplace.Core.Tests.Cache
         /// <returns>A task that represents the asynchronous operation.</returns>
         private async Task TestEquitableDictionary<T>(Dictionary<string, T> dictionary) where T: IEquatable<T>
         {
-            await this.PerformWithAllClientsAsync(async client =>
+            await this.PerformWithAllCacheClientsAsync(async client =>
             {
                 await client.SetDictionaryAsync(this.Key, dictionary);
                 var resultObjects = await client.GetDictionaryAsync<T>(this.Key);
@@ -228,7 +231,7 @@ namespace Marketplace.Core.Tests.Cache
         /// <returns>A task that represents the asynchronous operation.</returns>
         private async Task TestDictionaryEquitableElements<T>(Dictionary<string, T> dictionary) where T : IEquatable<T>
         {
-            await this.PerformWithAllClientsAsync(async client =>
+            await this.PerformWithAllCacheClientsAsync(async client =>
             {
                 await client.SetDictionaryAsync(this.Key, dictionary);
                 for (int x = 1; x < dictionaryLength; x++)

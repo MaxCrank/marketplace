@@ -1,4 +1,7 @@
-﻿using System;
+﻿// File: IEventBusClient.cs
+// Copyright (c) 2018-2019 Maksym Shnurenok
+// License: MIT
+using System;
 using System.Threading.Tasks;
 using Marketplace.Core.EventBus.Base;
 
@@ -57,6 +60,7 @@ namespace Marketplace.Core.EventBus.Interfaces
         /// Publishes the specified event bus message asynchronously.
         /// </summary>
         /// <param name="message">The message to publish.</param>
+        /// <returns>A task that represents the asynchronous operation.</returns>
         Task PublishMessageAsync(IEventBusMessage message);
 
         /// <summary>
@@ -68,7 +72,7 @@ namespace Marketplace.Core.EventBus.Interfaces
         /// <summary>
         /// Removes event message hanlders.
         /// </summary>
-        /// <param name="messageEventId">Message event ID. If creatorId is null or empty, all corresponding handlers will be removed.</param>
+        /// <param name="messageEventId">Message event ID. If <paramref name="creatorId"/> is null or empty, all corresponding handlers will be removed.</param>
         /// <param name="messageType">The message type handler is intended for.</param>
         /// <param name="creatorId">The handler creator identifier.</param>
         void RemoveMessageHanlders(string messageEventId, MessageType messageType, string creatorId = null);

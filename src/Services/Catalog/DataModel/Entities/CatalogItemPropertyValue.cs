@@ -1,4 +1,7 @@
-﻿using System.Collections.Generic;
+﻿// File: CatalogItemPropertyValue.cs
+// Copyright (c) 2018-2019 Maksym Shnurenok
+// License: MIT
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
 using Marketplace.Services.Catalog.DataModel.Entities.Base;

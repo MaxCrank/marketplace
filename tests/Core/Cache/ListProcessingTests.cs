@@ -1,4 +1,7 @@
-﻿using System;
+﻿// File: ListProcessingTests.cs
+// Copyright (c) 2018-2019 Maksym Shnurenok
+// License: MIT
+using System;
 using System.Linq;
 using System.Threading.Tasks;
 using Marketplace.Core.Cache.Exceptions;
@@ -147,7 +150,7 @@ namespace Marketplace.Core.Tests.Cache
         [Test]
         public async Task TestNonExistingList()
         {
-            await this.PerformWithAllClientsAsync(async client =>
+            await this.PerformWithAllCacheClientsAsync(async client =>
             {
                 Assert.ThrowsAsync<CacheException>(async () => await client.GetListValuesAsync<DummyCacheObject>(
                     this.Key));
@@ -177,7 +180,7 @@ namespace Marketplace.Core.Tests.Cache
         [Test]
         public async Task TestListRemoval()
         {
-            await this.PerformWithAllClientsAsync(async client =>
+            await this.PerformWithAllCacheClientsAsync(async client =>
             {
                 Assert.IsFalse(await client.RemoveUnderlyingValuesAsync(this.Key));
 
@@ -202,7 +205,7 @@ namespace Marketplace.Core.Tests.Cache
         /// <returns>A task that represents the asynchronous operation.</returns>
         private async Task TestEquiatbleList<T>(T[] list) where T: IEquatable<T>
         {
-            await this.PerformWithAllClientsAsync(async client =>
+            await this.PerformWithAllCacheClientsAsync(async client =>
             {
                 object[] passObject = list.Cast<object>().ToArray();
                 Assert.IsTrue(await client.SetListAsync(this.Key, passObject));
@@ -224,7 +227,7 @@ namespace Marketplace.Core.Tests.Cache
         /// <returns>A task that represents the asynchronous operation.</returns>
         private async Task TestListEquitableElements<T>(T[] list) where T: IEquatable<T>
         {
-            await this.PerformWithAllClientsAsync(async client =>
+            await this.PerformWithAllCacheClientsAsync(async client =>
             {
                 object[] passObject = list.Cast<object>().ToArray();
                 Assert.IsTrue(await client.SetListAsync(this.Key, passObject));

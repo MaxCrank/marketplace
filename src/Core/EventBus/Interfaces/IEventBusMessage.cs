@@ -1,4 +1,7 @@
-﻿using System;
+﻿// File: IEventBusMessage.cs
+// Copyright (c) 2018-2019 Maksym Shnurenok
+// License: MIT
+using System;
 using Marketplace.Core.EventBus.Base;
 
 namespace Marketplace.Core.EventBus.Interfaces
@@ -41,7 +44,7 @@ namespace Marketplace.Core.EventBus.Interfaces
         string MessageEventId { get; }
 
         /// <summary>
-        /// Gets the unified message identifier (combined of message type and event IDs).
+        /// Gets the unified message identifier (combined of message type and event ID).
         /// </summary>
         /// <value>
         /// The unified message identifier.
@@ -67,11 +70,5 @@ namespace Marketplace.Core.EventBus.Interfaces
         ///   <c>true</c> if this message is valid; otherwise, <c>false</c>.
         /// </returns>
         bool IsValid();
-
-        /// <summary>
-        /// Gets the basic information.
-        /// </summary>
-        /// <returns></returns>
-        string GetBasicInfo();
     }
 }

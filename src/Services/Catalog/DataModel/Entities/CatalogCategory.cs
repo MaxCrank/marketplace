@@ -1,4 +1,7 @@
-﻿using System.Collections.Generic;
+﻿// File: CatalogCategory.cs
+// Copyright (c) 2018-2019 Maksym Shnurenok
+// License: MIT
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;

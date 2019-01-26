@@ -1,4 +1,7 @@
-﻿using Marketplace.Core.Cache.Exceptions;
+﻿// File: CacheClientResponse.cs
+// Copyright (c) 2018-2019 Maksym Shnurenok
+// License: MIT
+using Marketplace.Core.Cache.Exceptions;
 
 namespace Marketplace.Core.Cache
 {

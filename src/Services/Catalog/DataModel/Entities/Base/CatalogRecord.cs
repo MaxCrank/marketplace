@@ -1,4 +1,7 @@
-﻿using System.Collections.Generic;
+﻿// File: CatalogRecord.cs
+// Copyright (c) 2018-2019 Maksym Shnurenok
+// License: MIT
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 
 namespace Marketplace.Services.Catalog.DataModel.Entities.Base

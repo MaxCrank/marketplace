@@ -1,12 +1,14 @@
-﻿using System;
+﻿// File: CacheClientTester.cs
+// Copyright (c) 2018-2019 Maksym Shnurenok
+// License: MIT
+using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Threading.Tasks;
 using Marketplace.Core.Cache.Clients;
 using Marketplace.Core.Cache.Interfaces;
+using Marketplace.Core.Tests.Base;
 using NUnit.Framework;
 
 namespace Marketplace.Core.Tests.Cache
@@ -14,37 +16,10 @@ namespace Marketplace.Core.Tests.Cache
     /// <summary>
     /// Base test class for any cache client implementation
     /// </summary>
-    [TestFixture]
-    [Parallelizable(ParallelScope.Fixtures)]
-    [ExcludeFromCodeCoverage]
     [Category("Cache")]
-    public abstract class CacheClientTester
+    public abstract class CacheClientTester : BasicTester
     {
-        #region Constants
-
-        /// <summary>
-        /// The application identifier
-        /// </summary>
-        protected const string AppId = "TestApp";
-
-        /// <summary>
-        /// The password
-        /// </summary>
-        private const string Password = "testCorePassword";
-
-        #endregion
-
         #region Fields
-
-        /// <summary>
-        /// The stopwatch
-        /// </summary>
-        readonly Stopwatch stopwatch = new Stopwatch();
-
-        /// <summary>
-        /// The running fixtures count
-        /// </summary>
-        private static volatile int runningFixturesCount = 0;
 
         /// <summary>
         /// The cache clients
@@ -76,13 +51,11 @@ namespace Marketplace.Core.Tests.Cache
         #region Configuration
 
         /// <summary>
-        /// Initializes the tests.
+        /// Initializes the fixture resources.
         /// </summary>
         /// <returns>A task that represents the asynchronous operation.</returns>
-        [OneTimeSetUp]
-        public async Task InitTests()
+        protected override async Task InitFixtureResources()
         {
-            runningFixturesCount++;
             this.cacheClients.Add(new RedisCacheClient(AppId, "test-core.redis.com", Password, 0, true));
             this.cacheClients.Add(new MemcachedCacheClient(AppId, "test-core.memcached.com", Password));
 
@@ -91,68 +64,38 @@ namespace Marketplace.Core.Tests.Cache
                 Assert.IsTrue(c.Connect());
             });
 
-            foreach (var client in this.cacheClients)
-            {
-                await client.RemoveUnderlyingValuesAsync(this.Key);
-            }
+            await this.PerformWithAllCacheClientsAsync(
+                async client => await client.RemoveUnderlyingValuesAsync(this.Key));
         }
 
         /// <summary>
-        /// Finalizes the tests.
+        /// Releases the fixture resources.
         /// </summary>
         /// <returns>A task that represents the asynchronous operation.</returns>
-        [OneTimeTearDown]
-        public async Task FinalizeTests()
+        protected override async Task ReleaseFixtureResources()
         {
-            bool flush = --runningFixturesCount == 0;
-            await this.PerformWithAllClientsAsync(async client =>
+            bool flush = this.CurrentRunningFixturesCount == 0;
+            await this.PerformWithAllCacheClientsAsync(async client =>
             {
                 if (flush && client != null)
                 {
                     await client.FlushAsync();
                 }
-                
+
                 client?.Dispose();
             });
         }
 
         /// <summary>
-        /// Initializes the test.
+        /// Releases the test resources.
         /// </summary>
-        [SetUp]
-        public void InitTest()
+        /// <returns></returns>
+        protected override async Task ReleaseTestResources()
         {
-            stopwatch.Restart();
-        }
-
-        /// <summary>
-        /// Finalizes the test.
-        /// </summary>
-        /// <returns>A task that represents the asynchronous operation.</returns>
-        [TearDown]
-        public async Task FinalizeTest()
-        {
-            await this.PerformWithAllClientsAsync(async client =>
+            await this.PerformWithAllCacheClientsAsync(async client =>
             {
                 await client.RemoveUnderlyingValuesAsync(this.Key);
             });
-
-            stopwatch.Stop();
-            var test = TestContext.CurrentContext.Test;
-            string argString = string.Empty;
-            foreach (var arg in test.Arguments)
-            {
-                argString += arg + ", ";
-            }
-
-            if (!string.IsNullOrEmpty(argString))
-            {
-                argString = argString.Remove(argString.Length - 1, 1);
-            }
-
-            string newLine =
-                $"{test.MethodName}({argString}) - {stopwatch.ElapsedMilliseconds} ms{Environment.NewLine}";
-            Console.WriteLine(newLine);
         }
 
         #endregion
@@ -160,25 +103,22 @@ namespace Marketplace.Core.Tests.Cache
         #region Helper Methods
 
         /// <summary>
-        /// Performs the action with all clients.
+        /// Performs the action with all cache clients.
         /// </summary>
         /// <param name="action">The action.</param>
-        protected void PerformWithAllClients(Action<ICacheClient> action)
+        protected void PerformWithAllCacheClients(Action<ICacheClient> action)
         {
-            foreach (var client in this.cacheClients)
-            {
-                action.Invoke(client);
-            }
+            this.PerformWithAllObjects(action, this.cacheClients);
         }
 
         /// <summary>
-        /// Performs the action with all clients.
+        /// Performs the action with all cache clients.
         /// </summary>
         /// <param name="action">The action.</param>
         /// <returns>A task that represents the asynchronous operation.</returns>
-        protected async Task PerformWithAllClientsAsync(Func<ICacheClient, Task> action)
+        protected async Task PerformWithAllCacheClientsAsync(Func<ICacheClient, Task> action)
         {
-            await Task.WhenAll(this.cacheClients.Select(action.Invoke));
+            await this.PerformWithAllObjectsAsync(action, this.cacheClients);
         }
 
         /// <summary>

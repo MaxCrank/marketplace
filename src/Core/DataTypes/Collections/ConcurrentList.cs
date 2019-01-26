@@ -1,4 +1,7 @@
-﻿using System;
+﻿// File: ConcurrentList.cs
+// Copyright (c) 2018-2019 Maksym Shnurenok
+// License: MIT
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;

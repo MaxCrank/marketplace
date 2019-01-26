@@ -1,4 +1,7 @@
-﻿using System;
+﻿// File: EventBusMessageHandler.cs
+// Copyright (c) 2018-2019 Maksym Shnurenok
+// License: MIT
+using System;
 using System.Threading.Tasks;
 using Marketplace.Core.EventBus.Base;
 using Marketplace.Core.EventBus.Interfaces;
@@ -75,7 +78,7 @@ namespace Marketplace.Core.EventBus
 
         #endregion
 
-        #region Public methods
+        #region Public Methods
 
         /// <summary>
         /// Returns true if handler is valid.
@@ -91,11 +94,9 @@ namespace Marketplace.Core.EventBus
                    this.Handler != null;
         }
 
-        /// <summary>
-        /// Gets the basic information.
-        /// </summary>
-        /// <returns></returns>
-        public string GetBasicInfo()
+        /// <summary>Returns a string that represents the current object.</summary>
+        /// <returns>A string that represents the current object.</returns>
+        public override string ToString()
         {
             return $"Type: {this.MessageType}; Event ID; {this.MessageEventId}; Creator: {this.CreatorId}";
         }

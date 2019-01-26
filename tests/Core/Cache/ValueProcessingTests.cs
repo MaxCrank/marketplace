@@ -1,4 +1,7 @@
-﻿using System;
+﻿// File: ValueProcessingTests.cs
+// Copyright (c) 2018-2019 Maksym Shnurenok
+// License: MIT
+using System;
 using System.Threading.Tasks;
 using Marketplace.Core.Cache.Exceptions;
 using NUnit.Framework;
@@ -141,7 +144,7 @@ namespace Marketplace.Core.Tests.Cache
         [Test]
         public async Task TestNonExistingKey()
         {
-            await this.PerformWithAllClientsAsync(async client =>
+            await this.PerformWithAllCacheClientsAsync(async client =>
             {
                 Assert.ThrowsAsync<CacheException>(async () => await client.GetValueAsync<DummyCacheObject>(this.Key));
 
@@ -161,7 +164,7 @@ namespace Marketplace.Core.Tests.Cache
         [Test]
         public async Task TestKeyRemoval()
         {
-            await this.PerformWithAllClientsAsync(async client =>
+            await this.PerformWithAllCacheClientsAsync(async client =>
             {
                 Assert.IsFalse(await client.RemoveUnderlyingValuesAsync(this.Key));
 
@@ -186,7 +189,7 @@ namespace Marketplace.Core.Tests.Cache
         /// <returns>A task that represents the asynchronous operation.</returns>
         private async Task TestValue<T>(T value, bool isEnumerable = false)
         {
-            await this.PerformWithAllClientsAsync(async client =>
+            await this.PerformWithAllCacheClientsAsync(async client =>
             {
                 Assert.IsTrue(await client.SetValueAsync(this.Key, value));
                 T resultObject = await client.GetValueAsync<T>(this.Key);
@@ -202,7 +205,7 @@ namespace Marketplace.Core.Tests.Cache
         /// <returns>A task that represents the asynchronous operation.</returns>
         private async Task TestEquitableValue<T>(T value) where T: IEquatable<T>
         {
-            await this.PerformWithAllClientsAsync(async client =>
+            await this.PerformWithAllCacheClientsAsync(async client =>
             {
                 Assert.IsTrue(await client.SetValueAsync(this.Key, value));
                 T resultObject = await client.GetValueAsync<T>(this.Key);

@@ -1,4 +1,7 @@
-﻿using System.Collections.Generic;
+﻿// File: UserReview.cs
+// Copyright (c) 2018-2019 Maksym Shnurenok
+// License: MIT
+using System.Collections.Generic;
 
 namespace Marketplace.Services.ContentDelivery.DataModel.Entities
 {

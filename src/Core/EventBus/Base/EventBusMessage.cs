@@ -1,4 +1,7 @@
-﻿using System;
+﻿// File: EventBusMessage.cs
+// Copyright (c) 2018-2019 Maksym Shnurenok
+// License: MIT
+using System;
 using System.Text;
 using Marketplace.Core.EventBus.Interfaces;
 using Newtonsoft.Json;
@@ -46,7 +49,7 @@ namespace Marketplace.Core.EventBus.Base
         public string MessageEventId => this.GetType().Name.ToLowerInvariant();
 
         /// <summary>
-        /// Gets the unified message identifier (combined of message type and event IDs).
+        /// Gets the unified message identifier (combined of message type and event ID).
         /// </summary>
         /// <value>
         /// The unified message identifier.
@@ -55,7 +58,7 @@ namespace Marketplace.Core.EventBus.Base
 
         #endregion
 
-        #region Public methods
+        #region Public Methods
 
         /// <summary>
         /// Get JSON string representation.
@@ -72,7 +75,7 @@ namespace Marketplace.Core.EventBus.Base
         /// <returns>JSON string representation in bytes.</returns>
         public byte[] ToJsonBytes()
         {
-            return Encoding.UTF8.GetBytes(this.ToJson());
+            return Encoding.Unicode.GetBytes(this.ToJson());
         }
 
         /// <summary>
@@ -86,11 +89,9 @@ namespace Marketplace.Core.EventBus.Base
             return this.MessageType != MessageType.Unknown && !string.IsNullOrEmpty(this.MessageEventId);
         }
 
-        /// <summary>
-        /// Gets the basic information.
-        /// </summary>
-        /// <returns></returns>
-        public string GetBasicInfo()
+        /// <summary>Returns a string that represents the current object.</summary>
+        /// <returns>A string that represents the current object.</returns>
+        public override string ToString()
         {
             return
                 $"Type: {this.MessageType}; Event ID: {this.MessageEventId}; Date added: {this.CreationDate}; Message ID: {this.MessageId}";

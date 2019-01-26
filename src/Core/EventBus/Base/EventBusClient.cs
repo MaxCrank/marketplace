@@ -1,4 +1,7 @@
-﻿using System;
+﻿// File: EventBusClient.cs
+// Copyright (c) 2018-2019 Maksym Shnurenok
+// License: MIT
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -71,7 +74,7 @@ namespace Marketplace.Core.EventBus.Base
 
         #endregion
 
-        #region Public methods
+        #region Public Methods
 
         /// <summary>
         /// Connects this instance if not already connected.
@@ -85,11 +88,11 @@ namespace Marketplace.Core.EventBus.Base
         /// <param name="message">The message to publish.</param>
         public virtual void PublishMessage(IEventBusMessage message)
         {
-            this.CheckMessage(message);
+            this.ValidateMessage(message);
 
             if (!this.Connect())
             {
-                throw new EventBusException($"Can't establish connection to publish message {message.GetBasicInfo()}");
+                throw new EventBusException($"Can't establish connection to publish message {message}");
             }
 
             this.PublishValidMessage(message);
@@ -101,11 +104,11 @@ namespace Marketplace.Core.EventBus.Base
         /// <param name="message">The message to publish.</param>
         public virtual async Task PublishMessageAsync(IEventBusMessage message)
         {
-            this.CheckMessage(message);
+            this.ValidateMessage(message);
 
             if (!this.Connect())
             {
-                throw new EventBusException($"Can't establish connection to publish message {message.GetBasicInfo()}");
+                throw new EventBusException($"Can't establish connection to publish message {message}");
             }
 
             await this.PublishValidMessageAsync(message);
@@ -117,11 +120,11 @@ namespace Marketplace.Core.EventBus.Base
         /// <param name="handler">The handler.</param>
         public virtual void AddMessageHanlder(IEventBusMessageHandler handler)
         {
-            this.CheckHandlerForAddition(handler);
+            this.ValidateMessageHandler(handler);
 
             if (!this.Connect())
             {
-                throw new EventBusException($"Can't establish connection to finish adding message handler for {handler.GetBasicInfo()}");
+                throw new EventBusException($"Can't establish connection to finish adding message handler for {handler}");
             }
 
             this.OnMessageHandlerAdd(handler);
@@ -178,7 +181,7 @@ namespace Marketplace.Core.EventBus.Base
 
         #endregion
 
-        #region Protected methods
+        #region Protected Methods
 
         /// <summary>
         /// Publishes the valid event bus message.
@@ -217,7 +220,7 @@ namespace Marketplace.Core.EventBus.Base
 
         #endregion
 
-        #region Private methods
+        #region Private Methods
 
         /// <summary>
         /// Removes the message handlers from list of handlers.
@@ -242,24 +245,23 @@ namespace Marketplace.Core.EventBus.Base
         }
 
         /// <summary>
-        /// Checks the specified message.
+        /// Validates the specified message.
         /// </summary>
         /// <param name="message">The message.</param>
-        private void CheckMessage(IEventBusMessage message)
+        private void ValidateMessage(IEventBusMessage message)
         {
             if (!message.IsValid())
             {
-                string logMessage = $"Can't publish invalid message. JSON representaion {message.GetBasicInfo()}";
+                string logMessage = $"Can't publish invalid message {message}";
                 throw new EventBusException(logMessage);
             }
         }
 
         /// <summary>
-        /// Checks the specified handler for addition.
+        /// Validates the specified handler.
         /// </summary>
         /// <param name="handler">The handler.</param>
-        /// <returns></returns>
-        private void CheckHandlerForAddition(IEventBusMessageHandler handler)
+        private void ValidateMessageHandler(IEventBusMessageHandler handler)
         {
             if (!handler.IsValid())
             {

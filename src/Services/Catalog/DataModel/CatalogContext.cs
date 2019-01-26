@@ -1,4 +1,7 @@
-﻿using Marketplace.Services.Catalog.DataModel.Configuration;
+﻿// File: CatalogContext.cs
+// Copyright (c) 2018-2019 Maksym Shnurenok
+// License: MIT
+using Marketplace.Services.Catalog.DataModel.Configuration;
 using Marketplace.Services.Catalog.DataModel.Entities;
 using Microsoft.EntityFrameworkCore;
 

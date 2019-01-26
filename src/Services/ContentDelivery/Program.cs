@@ -1,4 +1,7 @@
-﻿using Microsoft.AspNetCore;
+﻿// File: Program.cs
+// Copyright (c) 2018-2019 Maksym Shnurenok
+// License: MIT
+using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Hosting;
 
 namespace Marketplace.Services.ImageStorage

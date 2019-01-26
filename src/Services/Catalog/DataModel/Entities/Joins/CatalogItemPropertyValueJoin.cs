@@ -1,4 +1,7 @@
-﻿namespace Marketplace.Services.Catalog.DataModel.Entities.Joins
+﻿// File: CatalogItemPropertyValueJoin.cs
+// Copyright (c) 2018-2019 Maksym Shnurenok
+// License: MIT
+namespace Marketplace.Services.Catalog.DataModel.Entities.Joins
 {
     /// <summary>
     /// Join table for catalog items and property values

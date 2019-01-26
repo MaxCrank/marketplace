@@ -1,4 +1,7 @@
-﻿using System;
+﻿// File: DummyCacheObject.cs
+// Copyright (c) 2018-2019 Maksym Shnurenok
+// License: MIT
+using System;
 using System.Collections.Generic;
 
 namespace Marketplace.Core.Tests.Cache

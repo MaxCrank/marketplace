@@ -1,4 +1,7 @@
-﻿using System.Collections.Generic;
+﻿// File: KafkaEventBusClient.cs
+// Copyright (c) 2018-2019 Maksym Shnurenok
+// License: MIT
+using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -65,7 +68,7 @@ namespace Marketplace.Core.EventBus.Clients
 
         #endregion
 
-        #region Public methods
+        #region Public Methods
 
         /// <summary>
         /// Connects this instance if not already connected.
@@ -107,7 +110,7 @@ namespace Marketplace.Core.EventBus.Clients
 
         #endregion
 
-        #region Protected methods
+        #region Protected Methods
 
         /// <summary>
         /// Publishes the valid event bus message.
@@ -122,10 +125,11 @@ namespace Marketplace.Core.EventBus.Clients
         /// Publishes the valid event bus message asynchronously.
         /// </summary>
         /// <param name="message">The message to publish.</param>
+        /// <returns>A task that represents the asynchronous operation.</returns>
         protected override async Task PublishValidMessageAsync(IEventBusMessage message)
         {
             await this.producer.ProduceAsync(message.MessageType.ToString().ToLowerInvariant(),
-                Encoding.ASCII.GetBytes(message.MessageEventId), message.ToJsonBytes());
+                Encoding.Unicode.GetBytes(message.MessageEventId), message.ToJsonBytes());
         }
 
         /// <summary>
@@ -179,7 +183,7 @@ namespace Marketplace.Core.EventBus.Clients
 
         #endregion
 
-        #region Private methods
+        #region Private Methods
 
         /// <summary>
         /// Starts the new poll.

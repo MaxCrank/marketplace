@@ -1,4 +1,7 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿// File: CatalogEntityWithName.cs
+// Copyright (c) 2018-2019 Maksym Shnurenok
+// License: MIT
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Toolbelt.ComponentModel.DataAnnotations.Schema;
 

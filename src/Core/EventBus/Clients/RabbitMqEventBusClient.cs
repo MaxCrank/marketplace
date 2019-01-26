@@ -1,4 +1,7 @@
-﻿using System.Collections.Concurrent;
+﻿// File: RabbitMqEventBusClient.cs
+// Copyright (c) 2018-2019 Maksym Shnurenok
+// License: MIT
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -69,13 +72,13 @@ namespace Marketplace.Core.EventBus.Clients
         /// <summary>
         /// Initializes a new instance of the <see cref="RabbitMqEventBusClient"/> class.
         /// </summary>
-        /// <param name="busId"></param>
-        /// <param name="applicationId"></param>
-        /// <param name="host"></param>
-        /// <param name="userName"></param>
-        /// <param name="password"></param>
-        public RabbitMqEventBusClient(string busId, string applicationId, string host = "localhost",
-            string userName = "guest", string password = "guest") : base(busId, applicationId)
+        /// <param name="busId">The bus identifier.</param>
+        /// <param name="applicationId">The application identifier.</param>
+        /// <param name="host">The host.</param>
+        /// <param name="userName">The user name.</param>
+        /// <param name="password">The password.</param>
+        public RabbitMqEventBusClient(string busId, string applicationId, string host, string userName = "guest", string password = "guest") : 
+            base(busId, applicationId)
         {
             connectionFactory = new ConnectionFactory
             {
@@ -97,7 +100,7 @@ namespace Marketplace.Core.EventBus.Clients
 
         #endregion
 
-        #region Public methods
+        #region Public Methods
 
         /// <summary>
         /// Connects this instance if not already connected.
@@ -148,7 +151,7 @@ namespace Marketplace.Core.EventBus.Clients
 
         #endregion
 
-        #region Protected methods
+        #region Protected Methods
 
         /// <summary>
         /// Publishes the valid event bus message.
@@ -184,7 +187,7 @@ namespace Marketplace.Core.EventBus.Clients
         /// Publishes the valid event bus message asynchronously.
         /// </summary>
         /// <param name="message">The message to publish.</param>
-        /// <returns></returns>
+        /// <returns>A task that represents the asynchronous operation.</returns>
         protected override async Task PublishValidMessageAsync(IEventBusMessage message)
         {
             await Task.Run(() =>

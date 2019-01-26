@@ -1,4 +1,7 @@
-﻿using System;
+﻿// File: CacheException.cs
+// Copyright (c) 2018-2019 Maksym Shnurenok
+// License: MIT
+using System;
 
 namespace Marketplace.Core.Cache.Exceptions
 {

@@ -1,4 +1,7 @@
-﻿using Marketplace.Core.EventBus.Base;
+﻿// File: LogMessage.cs
+// Copyright (c) 2018-2019 Maksym Shnurenok
+// License: MIT
+using Marketplace.Core.EventBus.Base;
 
 namespace Marketplace.Core.EventBus.Messages
 {

@@ -1,4 +1,7 @@
-﻿using System.ComponentModel.DataAnnotations.Schema;
+﻿// File: CatalogImage.cs
+// Copyright (c) 2018-2019 Maksym Shnurenok
+// License: MIT
+using System.ComponentModel.DataAnnotations.Schema;
 using Marketplace.Services.Catalog.DataModel.Entities.Base;
 
 namespace Marketplace.Services.Catalog.DataModel.Entities

@@ -1,4 +1,7 @@
-﻿using System.ComponentModel.DataAnnotations.Schema;
+﻿// File: OrderingImage.cs
+// Copyright (c) 2018-2019 Maksym Shnurenok
+// License: MIT
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
 using Marketplace.Services.Ordering.DataModel.Entities.Base;
 

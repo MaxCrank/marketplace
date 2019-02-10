@@ -3,14 +3,13 @@
 // License: MIT
 using System;
 using System.Threading.Tasks;
-using Marketplace.Core.EventBus.Base;
 
 namespace Marketplace.Core.EventBus.Interfaces
 {
     /// <summary>
     /// Event bus message handler interface
     /// </summary>
-    public interface IEventBusMessageHandler
+    public interface IEventBusMessageHandler<in T> where T : IEventBusMessage
     {
         /// <summary>
         /// Gets the creator identifier.
@@ -29,28 +28,28 @@ namespace Marketplace.Core.EventBus.Interfaces
         string MessageEventId { get; }
 
         /// <summary>
+        /// Gets the internal type to handle.
+        /// </summary>
+        /// <value>
+        /// The internal type to handle.
+        /// </value>
+        Type InternalTypeToHandle { get; }
+
+        /// <summary>
         /// Gets the handler.
         /// </summary>
         /// <value>
         /// The handler.
         /// </value>
-        Func<byte[], Task> Handler { get; }
+        Func<T, Task> Handler { get; }
 
         /// <summary>
-        /// Gets the type of the message.
+        /// Gets the message tag information.
         /// </summary>
         /// <value>
-        /// The type of the message.
+        /// The message tag information.
         /// </value>
-        MessageType MessageType { get; }
-
-        /// <summary>
-        /// Gets the unified message identifier (combined of message type and event ID).
-        /// </summary>
-        /// <value>
-        /// The unified message identifier.
-        /// </value>
-        string UnifiedMessageTypeEventId { get; }
+        IEventBusMessageTagInfo MessageTagInfo { get; }
 
         /// <summary>
         /// Returns true if handler is valid.

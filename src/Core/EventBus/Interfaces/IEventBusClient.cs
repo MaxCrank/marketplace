@@ -66,16 +66,15 @@ namespace Marketplace.Core.EventBus.Interfaces
         /// <summary>
         /// Adds the event message hanlder for the specific message event ID.
         /// </summary>
+        /// <typeparam name="T">Event bus message type.</typeparam>
         /// <param name="handler">The handler.</param>
-        void AddMessageHanlder(IEventBusMessageHandler handler);
+        void AddMessageHanlder<T>(IEventBusMessageHandler<T> handler) where T: IEventBusMessage;
 
         /// <summary>
         /// Removes event message hanlders.
         /// </summary>
-        /// <param name="messageEventId">Message event ID. If <paramref name="creatorId"/> is null or empty, all corresponding handlers will be removed.</param>
-        /// <param name="messageType">The message type handler is intended for.</param>
         /// <param name="creatorId">The handler creator identifier.</param>
-        void RemoveMessageHanlders(string messageEventId, MessageType messageType, string creatorId = null);
+        void RemoveMessageHanlders<T>(string creatorId = null) where T : IEventBusMessage;
 
         /// <summary>
         /// Pauses this instance.

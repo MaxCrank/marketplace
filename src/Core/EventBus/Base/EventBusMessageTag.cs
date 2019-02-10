@@ -1,12 +1,12 @@
-﻿// File: MessageType.cs
+﻿// File: EventBusMessageTag.cs
 // Copyright (c) 2018-2019 Maksym Shnurenok
 // License: MIT
 namespace Marketplace.Core.EventBus.Base
 {
     /// <summary>
-    /// Message type enumeration
+    /// Event bus message tags enumeration
     /// </summary>
-    public enum MessageType
+    public enum EventBusMessageTag
     {
         Unknown,
         Data,

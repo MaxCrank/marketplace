@@ -16,8 +16,4 @@
     <ProjectReference Include="..\..\src\Core\Marketplace.Core.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="EventBus\" />
-  </ItemGroup>
-
 </Project>

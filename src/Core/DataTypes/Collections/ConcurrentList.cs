@@ -16,7 +16,7 @@ namespace Marketplace.Core.DataTypes.Collections
     /// <typeparam name="T"></typeparam>
     /// <seealso cref="System.Collections.Generic.IList{T}" />
     /// <seealso cref="System.IDisposable" />
-    public class ConcurrentList<T> : IList<T>, IDisposable
+    internal class ConcurrentList<T> : IList<T>, IDisposable
     {
         #region Fields
 

@@ -8,13 +8,14 @@ using System.Linq;
 using System.Threading.Tasks;
 using Marketplace.Core.Cache.Clients;
 using Marketplace.Core.Cache.Interfaces;
+using Marketplace.Core.Serialization.Serializers;
 using Marketplace.Core.Tests.Base;
 using NUnit.Framework;
 
 namespace Marketplace.Core.Tests.Cache
 {
     /// <summary>
-    /// Base test class for any cache client implementation
+    /// Base test class for any cache client implementation.
     /// </summary>
     [Category("Cache")]
     public abstract class CacheClientTester : BasicTester
@@ -56,8 +57,9 @@ namespace Marketplace.Core.Tests.Cache
         /// <returns>A task that represents the asynchronous operation.</returns>
         protected override async Task InitFixtureResources()
         {
-            this.cacheClients.Add(new RedisCacheClient(AppId, "test-core.redis.com", Password, 0, true));
-            this.cacheClients.Add(new MemcachedCacheClient(AppId, "test-core.memcached.com", Password));
+            var serializer = new JsonSerializer();
+            this.cacheClients.Add(new RedisCacheClient(AppId, "test-core-cache.redis.com", serializer, Password, 0, true));
+            this.cacheClients.Add(new MemcachedCacheClient(AppId, "test-core-cache.memcached.com", serializer, Password));
 
             this.cacheClients.ForEach(c =>
             {
@@ -89,7 +91,7 @@ namespace Marketplace.Core.Tests.Cache
         /// <summary>
         /// Releases the test resources.
         /// </summary>
-        /// <returns></returns>
+        /// <returns>A task that represents the asynchronous operation.</returns>
         protected override async Task ReleaseTestResources()
         {
             await this.PerformWithAllCacheClientsAsync(async client =>

@@ -8,6 +8,8 @@ using System.Threading.Tasks;
 using Marketplace.Core.DataTypes.Collections;
 using Marketplace.Core.EventBus.Exceptions;
 using Marketplace.Core.EventBus.Interfaces;
+using Marketplace.Core.EventBus.Messages;
+using Marketplace.Core.Serialization;
 
 namespace Marketplace.Core.EventBus.Base
 {
@@ -17,13 +19,22 @@ namespace Marketplace.Core.EventBus.Base
     /// <seealso cref="IEventBusClient" />
     public abstract class EventBusClient : IEventBusClient
     {
+        #region Fields
+
+        /// <summary>
+        /// The message serializer
+        /// </summary>
+        protected ISerializer MessageSerializer;
+
+        #endregion
+
         #region Properties
 
         /// <summary>
         /// The data event handlers
         /// </summary>
-        protected readonly IList<IEventBusMessageHandler> EventHandlers =
-            new ConcurrentList<IEventBusMessageHandler>();
+        protected readonly IList<IEventBusMessageHandler<IEventBusMessage>> EventHandlers =
+            new ConcurrentList<IEventBusMessageHandler<IEventBusMessage>>();
 
         /// <summary>
         /// Gets the application identifier.
@@ -66,10 +77,12 @@ namespace Marketplace.Core.EventBus.Base
         /// </summary>
         /// <param name="busId">The bus identifier.</param>
         /// <param name="applicationId">The application identifier.</param>
-        protected EventBusClient(string busId, string applicationId)
+        /// <param name="serializer">Message serializer.</param>
+        protected EventBusClient(string busId, string applicationId, ISerializer serializer)
         {
             this.BusId = busId.ToLowerInvariant();
             this.ApplicationId = applicationId.ToLowerInvariant();
+            this.MessageSerializer = serializer;
         }
 
         #endregion
@@ -86,7 +99,7 @@ namespace Marketplace.Core.EventBus.Base
         /// Publishes the specified event bus message.
         /// </summary>
         /// <param name="message">The message to publish.</param>
-        public virtual void PublishMessage(IEventBusMessage message)
+        public void PublishMessage(IEventBusMessage message)
         {
             this.ValidateMessage(message);
 
@@ -102,7 +115,7 @@ namespace Marketplace.Core.EventBus.Base
         /// Publishes the specified event bus message asynchronously.
         /// </summary>
         /// <param name="message">The message to publish.</param>
-        public virtual async Task PublishMessageAsync(IEventBusMessage message)
+        public async Task PublishMessageAsync(IEventBusMessage message)
         {
             this.ValidateMessage(message);
 
@@ -118,7 +131,7 @@ namespace Marketplace.Core.EventBus.Base
         /// Adds the event message hanlder for the specific message event ID.
         /// </summary>
         /// <param name="handler">The handler.</param>
-        public virtual void AddMessageHanlder(IEventBusMessageHandler handler)
+        public void AddMessageHanlder<T>(IEventBusMessageHandler<T> handler) where T: IEventBusMessage
         {
             this.ValidateMessageHandler(handler);
 
@@ -127,28 +140,27 @@ namespace Marketplace.Core.EventBus.Base
                 throw new EventBusException($"Can't establish connection to finish adding message handler for {handler}");
             }
 
+            this.EventHandlers.Add(handler as IEventBusMessageHandler<IEventBusMessage>);
             this.OnMessageHandlerAdd(handler);
         }
 
         /// <summary>
         /// Removes event message hanlders.
         /// </summary>
-        /// <param name="messageEventId">Message event ID.</param>
-        /// <param name="messageType">The message type handler is intended for.</param>
         /// <param name="creatorId">The handler creator identifier. If it's null or empty, all corresponding handlers will be removed.</param>
-        public virtual void RemoveMessageHanlders(string messageEventId, MessageType messageType,
-            string creatorId = null)
+        public void RemoveMessageHanlders<T>(string creatorId = null) where T: IEventBusMessage
         {
-            if (this.RemoveMessageHandlersFromList(messageEventId, messageType, creatorId) &&
-                this.EventHandlers.All(h => h.MessageEventId != messageEventId && h.MessageType != messageType))
+            string messageEventId = EventBusMessageInfoResolver.GetEventMessageId<T>();
+            bool removed = this.RemoveMessageHandlersFromList(messageEventId, creatorId);
+            if (removed)
             {
                 if (!this.Connect())
                 {
-                    throw new EventBusException("Can't establish connection to unsubscribe from messages with " +
-                                                $"type {messageType}, ID {messageEventId} and creator {creatorId}");
+                    throw new EventBusException($"Can't establish connection to unsubscribe from messages " +
+                                                $"with ID {messageEventId} and creator {creatorId}");
                 }
 
-                this.OnMessageHandlersRemove(messageEventId, messageType);
+                this.OnMessageHandlersRemove(messageEventId, EventBusMessageInfoResolver.GetTagInfo<T>().MessageTagString);
             }
         }
 
@@ -198,15 +210,16 @@ namespace Marketplace.Core.EventBus.Base
         /// <summary>
         /// Performs bus-specific ops after addition of event message handler.
         /// </summary>
+        /// <typeparam name="T">Type of the message to process.</typeparam>
         /// <param name="handler">The handler.</param>
-        protected abstract void OnMessageHandlerAdd(IEventBusMessageHandler handler);
+        protected abstract void OnMessageHandlerAdd<T>(IEventBusMessageHandler<T> handler) where T: IEventBusMessage;
 
         /// <summary>
         /// Performs bus-specific ops in case of complete removal of specific event message handlers.
         /// </summary>
         /// <param name="messageEventId">Message event ID.</param>
-        /// <param name="messageType">The message type handler is intended for.</param>
-        protected abstract void OnMessageHandlersRemove(string messageEventId, MessageType messageType);
+        /// <param name="affectedTag">The message tag handlers were intended for.</param>
+        protected abstract void OnMessageHandlersRemove(string messageEventId, string affectedTag);
 
         /// <summary>
         /// Called after <see cref="EventBusClient.Pause"/> to perform bus-specific ops.
@@ -218,6 +231,28 @@ namespace Marketplace.Core.EventBus.Base
         /// </summary>
         protected abstract void OnResume();
 
+        /// <summary>
+        /// Deserializes the message.
+        /// </summary>
+        /// <param name="data">The data.</param>
+        /// <param name="deserializeType">Type to deserialize to.</param>
+        /// <returns>Deserialized message.</returns>
+        protected IEventBusMessage DeserializeMessage(byte[] data, Type deserializeType)
+        {
+            return this.MessageSerializer.Deserialize(data, deserializeType) as IEventBusMessage;;
+        }
+
+        /// <summary>
+        /// Deserializes the message.
+        /// </summary>
+        /// <param name="data">The data.</param>
+        /// <param name="deserializeType">Type to deserialize to.</param>
+        /// <returns>Deserialized message.</returns>
+        protected IEventBusMessage DeserializeMessage(string data, Type deserializeType)
+        {
+            return this.MessageSerializer.Deserialize(data, deserializeType) as IEventBusMessage;
+        }
+
         #endregion
 
         #region Private Methods
@@ -226,13 +261,12 @@ namespace Marketplace.Core.EventBus.Base
         /// Removes the message handlers from list of handlers.
         /// </summary>
         /// <param name="messageEventId">The message event identifier.</param>
-        /// <param name="messageType">Type of the message.</param>
         /// <param name="creatorId">The creator identifier.</param>
-        /// <returns>If any handler was removed.</returns>
-        private bool RemoveMessageHandlersFromList(string messageEventId, MessageType messageType, string creatorId = null)
+        /// <returns>If any handler has been removed.</returns>
+        private bool RemoveMessageHandlersFromList(string messageEventId, string creatorId = null)
         {
             var handlersToRemove = this.EventHandlers
-                .Where(h => h.MessageEventId == messageEventId && h.MessageType == messageType).ToList();
+                .Where(h => h.MessageEventId == messageEventId).ToList();
 
             if (!string.IsNullOrEmpty(creatorId))
             {
@@ -260,13 +294,16 @@ namespace Marketplace.Core.EventBus.Base
         /// <summary>
         /// Validates the specified handler.
         /// </summary>
+        /// <typeparam name="T">Type of the message to process.</typeparam>
         /// <param name="handler">The handler.</param>
-        private void ValidateMessageHandler(IEventBusMessageHandler handler)
+        /// <exception cref="EventBusException"></exception>
+        private void ValidateMessageHandler<T>(IEventBusMessageHandler<T> handler) where T: IEventBusMessage
         {
             if (!handler.IsValid())
             {
-                string logMessage = $"Can't add invalid handler for message type {handler.MessageType} and event id {handler.MessageEventId} " +
-                                    $"from {handler.CreatorId}; please, set all needed fields properly";
+                string logMessage = $"Can't add invalid handler for message tag {handler.MessageTagInfo.MessageTagString} " +
+                                    $"and event id {handler.MessageEventId} " +
+                                    $"from {handler.CreatorId}; please, set all needed fields properly.";
                 throw new EventBusException(logMessage);
             }
         }

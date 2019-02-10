@@ -14,14 +14,6 @@ namespace Marketplace.Core.EventBus.Messages
         #region Properties
 
         /// <summary>
-        /// Gets the type of the message.
-        /// </summary>
-        /// <value>
-        /// The type of the message.
-        /// </value>
-        public override MessageType MessageType => MessageType.Log;
-
-        /// <summary>
         /// Gets or sets the severity.
         /// </summary>
         /// <value>

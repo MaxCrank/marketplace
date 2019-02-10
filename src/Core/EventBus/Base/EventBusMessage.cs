@@ -2,9 +2,8 @@
 // Copyright (c) 2018-2019 Maksym Shnurenok
 // License: MIT
 using System;
-using System.Text;
 using Marketplace.Core.EventBus.Interfaces;
-using Newtonsoft.Json;
+using Marketplace.Core.EventBus.Messages;
 
 namespace Marketplace.Core.EventBus.Base
 {
@@ -12,17 +11,10 @@ namespace Marketplace.Core.EventBus.Base
     /// Event bus message class.
     /// </summary>
     /// <seealso cref="IEventBusMessage" />
+    [Serializable]
     public abstract class EventBusMessage : IEventBusMessage
     {
         #region Properties
-
-        /// <summary>
-        /// Gets the type of the message.
-        /// </summary>
-        /// <value>
-        /// The type of the message.
-        /// </value>
-        public virtual MessageType MessageType => MessageType.Unknown;
 
         /// <summary>
         /// Gets the message identifier.
@@ -41,42 +33,37 @@ namespace Marketplace.Core.EventBus.Base
         public DateTime CreationDate { get; } = DateTime.UtcNow;
 
         /// <summary>
+        /// Gets the message tag information.
+        /// </summary>
+        /// <value>
+        /// The message tag information.
+        /// </value>
+        public IEventBusMessageTagInfo MessageTagInfo { get; }
+
+        /// <summary>
         /// Gets the message event ID.
         /// </summary>
         /// <value>
         /// The message event ID.
         /// </value>
-        public string MessageEventId => this.GetType().Name.ToLowerInvariant();
+        public string MessageEventId { get; }
+
+        #endregion
+
+        #region Constructors
 
         /// <summary>
-        /// Gets the unified message identifier (combined of message type and event ID).
+        /// Initializes a new instance of the <see cref="EventBusMessage"/> class.
         /// </summary>
-        /// <value>
-        /// The unified message identifier.
-        /// </value>
-        public string UnifiedMessageTypeEventId => $"{this.MessageType.ToString().ToLowerInvariant()}_{this.MessageEventId}";
+        protected EventBusMessage()
+        {
+            this.MessageTagInfo = EventBusMessageInfoResolver.GetTagInfo(this.GetType());
+            this.MessageEventId = EventBusMessageInfoResolver.GetEventMessageId(this.GetType());
+        }
 
         #endregion
 
         #region Public Methods
-
-        /// <summary>
-        /// Get JSON string representation.
-        /// </summary>
-        /// <returns>JSON string representation.</returns>
-        public string ToJson()
-        {
-            return JsonConvert.SerializeObject(this);
-        }
-
-        /// <summary>
-        /// Get JSON string representation in bytes.
-        /// </summary>
-        /// <returns>JSON string representation in bytes.</returns>
-        public byte[] ToJsonBytes()
-        {
-            return Encoding.Unicode.GetBytes(this.ToJson());
-        }
 
         /// <summary>
         /// Returns true if this message is valid.
@@ -86,7 +73,7 @@ namespace Marketplace.Core.EventBus.Base
         /// </returns>
         public virtual bool IsValid()
         {
-            return this.MessageType != MessageType.Unknown && !string.IsNullOrEmpty(this.MessageEventId);
+            return this.MessageTagInfo.MessageTag != EventBusMessageTag.Unknown && !string.IsNullOrEmpty(this.MessageEventId);
         }
 
         /// <summary>Returns a string that represents the current object.</summary>
@@ -94,7 +81,8 @@ namespace Marketplace.Core.EventBus.Base
         public override string ToString()
         {
             return
-                $"Type: {this.MessageType}; Event ID: {this.MessageEventId}; Date added: {this.CreationDate}; Message ID: {this.MessageId}";
+                $"Tag: {this.MessageTagInfo.MessageTagString}; Event ID: {this.MessageEventId}; Date added: {this.CreationDate}; " +
+                $"Message ID: {this.MessageId}";
         }
 
         #endregion

@@ -1,6 +1,8 @@
 ﻿// File: KafkaEventBusClient.cs
 // Copyright (c) 2018-2019 Maksym Shnurenok
 // License: MIT
+
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -8,6 +10,7 @@ using System.Threading.Tasks;
 using Confluent.Kafka;
 using Marketplace.Core.EventBus.Base;
 using Marketplace.Core.EventBus.Interfaces;
+using Marketplace.Core.Serialization;
 
 namespace Marketplace.Core.EventBus.Clients
 {
@@ -60,8 +63,10 @@ namespace Marketplace.Core.EventBus.Clients
         /// </summary>
         /// <param name="busId">The bus identifier.</param>
         /// <param name="applicationId">The application identifier.</param>
+        /// <param name="messageSerializer">Message serializer.</param>
         /// <param name="host">The host.</param>
-        public KafkaEventBusClient(string busId, string applicationId, string host) : base(busId, applicationId)
+        public KafkaEventBusClient(string busId, string applicationId, ISerializer messageSerializer, string host) : 
+            base(busId, applicationId, messageSerializer)
         {
             this.host = host;
         }
@@ -89,12 +94,12 @@ namespace Marketplace.Core.EventBus.Clients
             this.consumer.OnMessage += async (sender, message) =>
             {
                 var tasks = this.EventHandlers.Where(h =>
-                        h.MessageType.ToString().ToLowerInvariant() == message.Topic &&
-                        message.Key == Encoding.ASCII.GetBytes(h.MessageEventId))
-                    .Select(t => t.Handler.Invoke(message.Value));
+                        h.MessageTagInfo.MessageTagString == message.Topic &&
+                        message.Key == Encoding.Unicode.GetBytes(h.MessageEventId))
+                    .Select(t => t.Handler.Invoke(this.DeserializeMessage(message.Value, t.InternalTypeToHandle)));
                 await Task.WhenAll(tasks);
             };
-
+            
             return this.IsConnected;
         }
 
@@ -128,18 +133,18 @@ namespace Marketplace.Core.EventBus.Clients
         /// <returns>A task that represents the asynchronous operation.</returns>
         protected override async Task PublishValidMessageAsync(IEventBusMessage message)
         {
-            await this.producer.ProduceAsync(message.MessageType.ToString().ToLowerInvariant(),
-                Encoding.Unicode.GetBytes(message.MessageEventId), message.ToJsonBytes());
+            await this.producer.ProduceAsync(message.MessageTagInfo.MessageTagString,
+                Encoding.Unicode.GetBytes(message.MessageEventId), this.MessageSerializer.SerializeToBytes(message));
         }
 
         /// <summary>
         /// Performs bus-specific ops after addition of event message handler.
         /// </summary>
         /// <param name="handler">The handler.</param>
-        protected override void OnMessageHandlerAdd(IEventBusMessageHandler handler)
+        protected override void OnMessageHandlerAdd<T>(IEventBusMessageHandler<T> handler)
         {
             List<string> subscriptions = this.consumer.Subscription ?? new List<string>();
-            string topic = handler.MessageType.ToString().ToLowerInvariant();
+            string topic = handler.MessageTagInfo.MessageTagString;
             if (!subscriptions.Contains(topic))
             {
                 subscriptions.Add(topic);
@@ -156,12 +161,15 @@ namespace Marketplace.Core.EventBus.Clients
         /// Performs bus-specific ops in case of complete removal of specific event message handlers.
         /// </summary>
         /// <param name="messageEventId">Message event ID.</param>
-        /// <param name="messageType">The message type handler is intended for.</param>
-        protected override void OnMessageHandlersRemove(string messageEventId, MessageType messageType)
+        /// <param name="affectedTag">The message tag handlers were intended for.</param>
+        protected override void OnMessageHandlersRemove(string messageEventId, string affectedTag)
         {
             List<string> subscriptions = this.consumer.Subscription;
-            subscriptions.Remove(messageType.ToString().ToLowerInvariant());
-            this.consumer.Subscribe(subscriptions);
+            if (EventHandlers.All(h => h.MessageTagInfo.MessageTagString != affectedTag))
+            {
+                subscriptions.Remove(affectedTag);
+                this.consumer.Subscribe(subscriptions);
+            }
         }
 
         /// <summary>
@@ -177,7 +185,7 @@ namespace Marketplace.Core.EventBus.Clients
         /// </summary>
         protected override void OnResume()
         {
-            this.consumer.Subscribe(this.EventHandlers.Select(h => h.MessageType.ToString().ToLowerInvariant()).Distinct());
+            this.consumer.Subscribe(this.EventHandlers.Select(h => h.MessageTagInfo.MessageTagString).Distinct());
             this.StartNewPoll();
         }
 

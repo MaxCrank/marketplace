@@ -7,6 +7,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Marketplace.Core.EventBus.Base;
 using Marketplace.Core.EventBus.Interfaces;
+using Marketplace.Core.Serialization;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 
@@ -74,11 +75,12 @@ namespace Marketplace.Core.EventBus.Clients
         /// </summary>
         /// <param name="busId">The bus identifier.</param>
         /// <param name="applicationId">The application identifier.</param>
+        /// <param name="messageSerializer">Message serializer.</param>
         /// <param name="host">The host.</param>
         /// <param name="userName">The user name.</param>
         /// <param name="password">The password.</param>
-        public RabbitMqEventBusClient(string busId, string applicationId, string host, string userName = "guest", string password = "guest") : 
-            base(busId, applicationId)
+        public RabbitMqEventBusClient(string busId, string applicationId, ISerializer messageSerializer, string host, string userName = "guest",
+            string password = "guest") : base(busId, applicationId, messageSerializer)
         {
             connectionFactory = new ConnectionFactory
             {
@@ -130,7 +132,7 @@ namespace Marketplace.Core.EventBus.Clients
                 this.basicConsumer.Received += async (model, eventArgs) =>
                 {
                     var tasks = this.EventHandlers.Where(h => h.MessageEventId == eventArgs.RoutingKey)
-                        .Select(t => t.Handler.Invoke(eventArgs.Body));
+                        .Select(t => t.Handler.Invoke(this.DeserializeMessage(eventArgs.Body, t.InternalTypeToHandle)));
                     await Task.WhenAll(tasks);
                     this.subscriberChannel.BasicAck(eventArgs.DeliveryTag, false);
                 };
@@ -161,7 +163,7 @@ namespace Marketplace.Core.EventBus.Clients
         {
             using (var channel = publisherConnection.CreateModel())
             {
-                string queueName = message.MessageType.ToString().ToLowerInvariant();
+                string queueName = message.MessageTagInfo.MessageTagString;
 
                 channel.ExchangeDeclare(this.BusId, ExchangeType.Direct);
                 channel.QueueDeclare(queueName, true, false, true, new Dictionary<string, object>()
@@ -179,7 +181,7 @@ namespace Marketplace.Core.EventBus.Clients
                     queueName,
                     true,
                     properties,
-                    message.ToJsonBytes());
+                    this.MessageSerializer.SerializeToBytes(message));
             }
         }
 
@@ -199,12 +201,13 @@ namespace Marketplace.Core.EventBus.Clients
         /// <summary>
         /// Performs bus-specific ops after addition of event message handler.
         /// </summary>
+        /// <typeparam name="T">Type of the message to process.</typeparam>
         /// <param name="handler">The handler.</param>
-        protected override void OnMessageHandlerAdd(IEventBusMessageHandler handler)
+        protected override void OnMessageHandlerAdd<T>(IEventBusMessageHandler<T> handler)
         {
-            string messageQueue = handler.MessageType.ToString().ToLower();
+            string messageQueue = handler.MessageTagInfo.MessageTagString;
 
-            if (this.EventHandlers.Count(h => h.MessageType == handler.MessageType) == 1)
+            if (this.EventHandlers.Count(h => h.MessageTagInfo.MessageTagString == handler.MessageTagInfo.MessageTagString) == 1)
             {
                 this.subscriberChannel.ExchangeDeclare(this.BusId, ExchangeType.Direct);
 
@@ -219,13 +222,12 @@ namespace Marketplace.Core.EventBus.Clients
         /// Performs bus-specific ops in case of complete removal of specific event message handlers.
         /// </summary>
         /// <param name="messageEventId">Message event ID.</param>
-        /// <param name="messageType">The message type handler is intended for.</param>
-        protected override void OnMessageHandlersRemove(string messageEventId, MessageType messageType)
+        /// <param name="affectedTag">The message tag handlers were intended for.</param>
+        protected override void OnMessageHandlersRemove(string messageEventId, string affectedTag)
         {
-            string messageQueue = messageType.ToString().ToLowerInvariant();
-
+            string messageQueue = affectedTag;
             this.subscriberChannel.QueueUnbind(messageQueue, this.BusId, messageEventId);
-            if (this.EventHandlers.All(h => h.MessageType != messageType))
+            if (this.EventHandlers.All(h => h.MessageTagInfo.MessageTagString != affectedTag))
             {
                 this.subscriberChannel.BasicCancel(this.consumerTags[messageQueue]);
                 this.consumerTags.Remove(messageQueue, out string removedTag);

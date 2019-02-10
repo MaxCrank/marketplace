@@ -8,6 +8,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Marketplace.Core.Cache.Exceptions;
 using Marketplace.Core.Cache.Interfaces;
+using Marketplace.Core.Serialization;
 using Newtonsoft.Json;
 using StackExchange.Redis;
 
@@ -46,6 +47,11 @@ namespace Marketplace.Core.Cache.Clients
         /// </summary>
         private readonly bool adminMode;
 
+        /// <summary>
+        /// The cache serializer
+        /// </summary>
+        private ISerializer cacheSerializer;
+
         #endregion
 
         #region Properties
@@ -75,15 +81,17 @@ namespace Marketplace.Core.Cache.Clients
         /// </summary>
         /// <param name="applicationId">The application identifier.</param>
         /// <param name="host">The host (please, do not specify port in this parameter - use <paramref name="port"/> parameter instead).</param>
+        /// <param name="serializer">Cache info serializer.</param>
         /// <param name="password">The password.</param>
         /// <param name="defaultDb">The default database.</param>
         /// <param name="adminMode">Allows admin mode operations.</param>
         /// <param name="port">The port.</param>
-        public RedisCacheClient(string applicationId, string host, string password = null, int defaultDb = 0,
-            bool adminMode = false, int port = 6379)
+        public RedisCacheClient(string applicationId, string host, ISerializer serializer, string password = null, 
+            int defaultDb = 0, bool adminMode = false, int port = 6379)
         {
             this.ApplicationId = applicationId;
             this.hostAndPort = $"{host.TrimEnd('/')}:{port}";
+            this.cacheSerializer = serializer;
             this.defaultDatabase = defaultDb;
             this.password = password;
             this.adminMode = adminMode;
@@ -347,7 +355,6 @@ namespace Marketplace.Core.Cache.Clients
         /// <returns>A task that represents the asynchronous operation.</returns>
         public async Task FlushAsync()
         {
-            //throw new Exception(this.connection.GetEndPoints().Select(e => e.ToString()).Aggregate((s1, s2) => s1 + " ; " + s2));
             var server = this.connection.GetServer(this.hostAndPort);
             await server.FlushDatabaseAsync(this.defaultDatabase);
         }
@@ -381,7 +388,7 @@ namespace Marketplace.Core.Cache.Clients
                 return byteArray;
             }
 
-            return Encoding.Unicode.GetBytes(JsonConvert.SerializeObject(serializableObject));
+            return this.cacheSerializer.SerializeToBytes(serializableObject);
         }
 
         /// <summary>
@@ -402,7 +409,7 @@ namespace Marketplace.Core.Cache.Clients
                 return (T)Convert.ChangeType(Encoding.Unicode.GetString(data), typeof(T));
             }
 
-            return JsonConvert.DeserializeObject<T>(Encoding.Unicode.GetString(data));
+            return this.cacheSerializer.Deserialize<T>((byte[])data);
         }
 
         /// <summary>

@@ -2,7 +2,6 @@
 // Copyright (c) 2018-2019 Maksym Shnurenok
 // License: MIT
 using System;
-using Marketplace.Core.EventBus.Base;
 
 namespace Marketplace.Core.EventBus.Interfaces
 {
@@ -28,12 +27,12 @@ namespace Marketplace.Core.EventBus.Interfaces
         DateTime CreationDate { get; }
 
         /// <summary>
-        /// Gets the type of the message.
+        /// Gets the message tag information.
         /// </summary>
         /// <value>
-        /// The type of the message.
+        /// The message tag information.
         /// </value>
-        MessageType MessageType { get; }
+        IEventBusMessageTagInfo MessageTagInfo { get; }
 
         /// <summary>
         /// Gets the message event ID.
@@ -42,26 +41,6 @@ namespace Marketplace.Core.EventBus.Interfaces
         /// The message event ID.
         /// </value>
         string MessageEventId { get; }
-
-        /// <summary>
-        /// Gets the unified message identifier (combined of message type and event ID).
-        /// </summary>
-        /// <value>
-        /// The unified message identifier.
-        /// </value>
-        string UnifiedMessageTypeEventId { get; }
-
-        /// <summary>
-        /// Get JSON string representation.
-        /// </summary>
-        /// <returns>JSON string representation.</returns>
-        string ToJson();
-
-        /// <summary>
-        /// Get JSON string representation in bytes.
-        /// </summary>
-        /// <returns>JSON string representation in bytes.</returns>
-        byte[] ToJsonBytes();
 
         /// <summary>
         /// Returns true if this message is valid.

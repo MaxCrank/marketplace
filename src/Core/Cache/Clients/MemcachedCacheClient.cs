@@ -11,6 +11,7 @@ using Enyim.Caching.Memcached;
 using Enyim.Caching.Memcached.Results;
 using Marketplace.Core.Cache.Exceptions;
 using Marketplace.Core.Cache.Interfaces;
+using Marketplace.Core.Serialization;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
@@ -29,6 +30,11 @@ namespace Marketplace.Core.Cache.Clients
         /// The client
         /// </summary>
         private readonly IMemcachedClient client;
+
+        /// <summary>
+        /// The cache serializer
+        /// </summary>
+        private ISerializer cacheSerializer;
 
         #endregion
 
@@ -59,11 +65,14 @@ namespace Marketplace.Core.Cache.Clients
         /// </summary>
         /// <param name="applicationId">The application ID.</param>
         /// <param name="host">The host.</param>
+        /// <param name="serializer">Cache info serialzier.</param>
         /// <param name="password">The password.</param>
         /// <param name="port">The port.</param>
-        public MemcachedCacheClient(string applicationId, string host, string password = null, int port = 11211)
+        public MemcachedCacheClient(string applicationId, string host, ISerializer serializer,
+            string password = null, int port = 11211)
         {
             this.ApplicationId = applicationId;
+            this.cacheSerializer = serializer;
 
             IServiceCollection services = new ServiceCollection();
             services.AddSingleton<ILoggerFactory>(new LoggerFactory());
@@ -109,7 +118,7 @@ namespace Marketplace.Core.Cache.Clients
 
         #endregion
 
-        #region Public methods
+        #region Public Methods
 
         /// <summary>
         /// Connects this instance if not already connected.
@@ -131,7 +140,7 @@ namespace Marketplace.Core.Cache.Clients
         {
             if (!(value is string))
             {
-                value = JsonConvert.SerializeObject(value);
+                value = this.cacheSerializer.SerializeToString(value);
             }
             
             return await this.client.StoreAsync(StoreMode.Set, key, value, TimeSpan.MaxValue);
@@ -353,7 +362,7 @@ namespace Marketplace.Core.Cache.Clients
 
         #endregion
 
-        #region Private methods
+        #region Private Methods
 
         /// <summary>
         /// Gets the value.
@@ -396,8 +405,9 @@ namespace Marketplace.Core.Cache.Clients
             GetOperationResult<string> valueResult = await this.client.GetAsync<string>(key) as GetOperationResult<string>;
             if (valueResult.Success)
             {
-                result = typeof(T) == typeof(string) ? valueResult.Value : 
-                    (object)JsonConvert.DeserializeObject<T>(valueResult.Value);
+                result = typeof(T) == typeof(string)
+                    ? valueResult.Value
+                    : (object)this.cacheSerializer.Deserialize<T>(valueResult.Value);
             }
             else
             {

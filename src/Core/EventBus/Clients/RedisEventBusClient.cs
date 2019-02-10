@@ -6,6 +6,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Marketplace.Core.EventBus.Base;
 using Marketplace.Core.EventBus.Interfaces;
+using Marketplace.Core.Serialization;
 using StackExchange.Redis;
 
 namespace Marketplace.Core.EventBus.Clients
@@ -70,12 +71,13 @@ namespace Marketplace.Core.EventBus.Clients
         /// </summary>
         /// <param name="busId">The bus identifier.</param>
         /// <param name="applicationId">The application identifier.</param>
+        /// <param name="messageSerializer">Message serializer.</param>
         /// <param name="host">The host (please, do not specify port in this parameter - use <paramref name="port"/> parameter instead).</param>
         /// <param name="password">The password.</param>
         /// <param name="adminMode">Allows admin mode operations.</param>
         /// <param name="port">The port.</param>
-        public RedisEventBusClient(string busId, string applicationId, string host, string password = null,
-            bool adminMode = false, int port = 6379) : base(busId, applicationId)
+        public RedisEventBusClient(string busId, string applicationId, ISerializer messageSerializer, string host, string password = null,
+            bool adminMode = false, int port = 6379) : base(busId, applicationId, messageSerializer)
         {
             this.hostAndPort = $"{host.TrimEnd('/')}:{port}";
             this.password = password;
@@ -116,8 +118,8 @@ namespace Marketplace.Core.EventBus.Clients
                 this.handlerAction = async (channel, value) =>
                 {
                     var tasks = this.EventHandlers.Where(h =>
-                            h.UnifiedMessageTypeEventId == channel)
-                        .Select(t => t.Handler.Invoke(value));
+                            h.MessageEventId == channel)
+                        .Select(t => t.Handler.Invoke(this.DeserializeMessage((byte[])value, t.InternalTypeToHandle)));
                     await Task.WhenAll(tasks);
                 };
             }
@@ -144,7 +146,7 @@ namespace Marketplace.Core.EventBus.Clients
         /// <param name="message">The message to publish.</param>
         protected override void PublishValidMessage(IEventBusMessage message)
         {
-            this.pubSubClient.Publish(message.UnifiedMessageTypeEventId, message.ToJson());
+            this.pubSubClient.Publish(message.MessageEventId, this.MessageSerializer.SerializeToString(message));
         }
 
         /// <summary>
@@ -154,28 +156,28 @@ namespace Marketplace.Core.EventBus.Clients
         /// <returns>A task that represents the asynchronous operation.</returns>
         protected override async Task PublishValidMessageAsync(IEventBusMessage message)
         {
-            await this.pubSubClient.PublishAsync(message.UnifiedMessageTypeEventId, message.ToJson());
+            await this.pubSubClient.PublishAsync(message.MessageEventId, this.MessageSerializer.SerializeToString(message));
         }
 
         /// <summary>
         /// Performs bus-specific ops after addition of event message handler.
         /// </summary>
+        /// <typeparam name="T">Type of the message to process.</typeparam>
         /// <param name="handler">The handler.</param>
-        protected override void OnMessageHandlerAdd(IEventBusMessageHandler handler)
+        protected override void OnMessageHandlerAdd<T>(IEventBusMessageHandler<T> handler)
         {
-            this.pubSubClient.Subscribe(new RedisChannel(handler.UnifiedMessageTypeEventId, RedisChannel.PatternMode.Literal), 
+            this.pubSubClient.Subscribe(new RedisChannel(handler.MessageEventId, RedisChannel.PatternMode.Literal), 
                 this.handlerAction);
         }
 
         /// <summary>
-        ///Performs bus-specific ops in case of complete removal of specific event message handlers.
+        /// Performs bus-specific ops in case of complete removal of specific event message handlers.
         /// </summary>
         /// <param name="messageEventId">Message event ID.</param>
-        /// <param name="messageType">The message type handler is intended for.</param>
-        protected override void OnMessageHandlersRemove(string messageEventId, MessageType messageType)
+        /// <param name="affectedTag">The message tag handlers were intended for.</param>
+        protected override void OnMessageHandlersRemove(string messageEventId, string affectedTag)
         {
-            this.pubSubClient.Unsubscribe(new RedisChannel($"{messageType.ToString().ToLowerInvariant()}_{messageEventId}",
-                RedisChannel.PatternMode.Literal));
+            this.pubSubClient.Unsubscribe(new RedisChannel(messageEventId, RedisChannel.PatternMode.Literal));
         }
 
         /// <summary>
@@ -183,7 +185,7 @@ namespace Marketplace.Core.EventBus.Clients
         /// </summary>
         protected override void OnPause()
         {
-            var channels = this.EventHandlers.Select(h => h.UnifiedMessageTypeEventId).Distinct();
+            var channels = this.EventHandlers.Select(h => h.MessageEventId).Distinct();
             foreach (var channel in channels)
             {
                 this.pubSubClient.Unsubscribe(channel);
@@ -195,7 +197,7 @@ namespace Marketplace.Core.EventBus.Clients
         /// </summary>
         protected override void OnResume()
         {
-            var channels = this.EventHandlers.Select(h => h.UnifiedMessageTypeEventId).Distinct();
+            var channels = this.EventHandlers.Select(h => h.MessageEventId).Distinct();
             foreach (var channelString in channels)
             {
                 this.pubSubClient.Subscribe(new RedisChannel(channelString, RedisChannel.PatternMode.Literal),

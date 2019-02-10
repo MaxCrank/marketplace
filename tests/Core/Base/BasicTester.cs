@@ -18,6 +18,7 @@ namespace Marketplace.Core.Tests.Base
     [TestFixture]
     [Parallelizable(ParallelScope.Fixtures)]
     [ExcludeFromCodeCoverage]
+    [Category("Core")]
     public abstract class BasicTester
     {
         #region Fields
@@ -153,7 +154,7 @@ namespace Marketplace.Core.Tests.Base
         /// <summary>
         /// Releases the test resources.
         /// </summary>
-        /// <returns></returns>
+        /// <returns>A task that represents the asynchronous operation.</returns>
         protected abstract Task ReleaseTestResources();
 
         #endregion

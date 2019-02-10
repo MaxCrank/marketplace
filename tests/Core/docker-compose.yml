@@ -1,0 +1,14 @@
+version: '3'
+
+services:
+  tests:
+    build: 
+      context: ../../
+      dockerfile: ./tests/Core/Dockerfile.tests.core
+
+  redis:
+    build: 
+      context: ./
+      dockerfile: Dockerfile.tests.redis
+    ports:
+      - 6379

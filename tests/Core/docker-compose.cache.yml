@@ -3,8 +3,6 @@ version: '3'
 services:
   tests:
     build: 
-      context: ../../
-      dockerfile: ./tests/Core/Dockerfile.tests.core
       args:
         testCategory: Cache
     image: marketplace-test-core:cache
@@ -15,16 +13,11 @@ services:
       - marketplace-test-cache-network
 
   redis:
-    build: 
-      context: ./
-      dockerfile: Dockerfile.tests.redis
     image: marketplace-test-cache-redis
     networks:
       marketplace-test-cache-network:
         aliases: 
           - test-core-cache.redis.com
-    ports:
-      - 6379
 
   memcached:
     build: 

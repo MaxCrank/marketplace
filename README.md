@@ -1,6 +1,6 @@
 ## Marketplace
 
-Personal pet-project for educational/promo purposes with simpilifed approach (e.g. Core project would be split in parts if several implementations are needed in real solution and so on). 
+Personal pet-project for educational/promo purposes with simplified approach (e.g. Core project would be split in parts if several implementations are needed in real solution, Docker configurations would be set up to use environment variables for CI and so on). 
 
 It's meant to be an abstract microservice-based solution for marketplace that runs in Docker containers and:
 - Can use popular message brokers such as RabbitMQ, Redis or Kafka (though Redis isn't considered as a real use-case due to weak guarantees).
@@ -19,7 +19,7 @@ It's being developed in Windows environment using VS2017 and Linux containers.
 ### **Cache clients** - *Done*
 Please, run the following command from the solution root folder to execute corresponding tests.
 ```
-docker-compose -f tests\Core\docker-compose.cache.yml run --rm tests && docker-compose -f tests\Core\docker-compose.cache.yml down
+docker-compose -f tests\Core\docker-compose.yml -f tests\Core\docker-compose.cache.yml run --rm tests && docker-compose -f tests\Core\docker-compose.yml -f tests\Core\docker-compose.cache.yml down
 ```
 
 ### **Event bus clients** - *In Progress*
